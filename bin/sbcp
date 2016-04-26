@@ -1,0 +1,103 @@
+#!/usr/bin/env ruby
+
+require 'optparse'
+
+o = OptionParser.new do |opts|
+	opts.banner = 'Usage: sbcp [options]'
+
+	opts.on('-s', '--start [MODE]', 'Starts SBCP in either CLI or GUI mode (Default: CLI)') do |mode|
+		mode = 'invalid' if mode == nil
+		case mode.upcase
+		when "CLI"
+			require 'sbcp'
+		when "GUI"
+			require 'sbcp'
+			SBCP::Panel.run!
+		else
+			puts 'Please provide either CLI (Command Line Interface) or GUI (Graphical User Interface) as an arguement.'
+		end
+	end
+	opts.on('-r', '--restart', 'Gracefully restarts the Starbound server') do
+
+	end
+	opts.on('-R', '--reboot', 'Forcibly restarts the Starbound server') do
+		puts 'Are you sure? This will forcibly restart the server. Some data may be lost as a result.'
+		puts "Type 'yes' to continue."
+		if gets.chomp == 'yes' then
+			# restart server
+		else
+			puts 'Force restart aborted.'
+		end
+	end
+	opts.on('-g', '--grace', 'Gracefully stops the Starbound server') do
+
+	end
+	opts.on('-K', '--kill', 'Forcibly stops the Starbound server') do
+		puts 'Are you sure? This will forcibly stop the server. Some data may be lost as a result.'
+		puts "Type 'yes' to continue."
+		if gets.chomp == 'yes' then
+			# kill server
+		else
+			puts 'Force stop aborted.'
+		end
+	end
+	opts.on('-k', '--kick TYPE', [:uuid, :name, :ip], 'Kicks a specified player by either UUID, Name, or IP') do |type|
+		
+	end
+	opts.on('-b', '--ban TYPE', [:uuid, :name, :ip], 'Bans a specified player by either UUID, Name, or IP') do |type|
+
+	end
+	opts.on('-u', '--unban TYPE', [:uuid, :name, :ip], 'Unbans a specified player by either UUID, Name, or IP') do |type|
+
+	end
+	opts.on('-B', '--backup', 'Creates a backup of all Starbound worlds, logs, and SBCP data') do
+
+	end
+	opts.on('-e', '--exit', 'Gracefully stops SBCP') do
+		puts 'Are you sure? This will gracefully stop the control panel.'
+		puts 'If the Starbound server is running, you must stop it before this command will work.'
+		puts "Type 'yes' to continue."
+		if gets.chomp == 'yes' then
+			# stop SBCP
+		else
+			puts 'The control panel was not stopped.'
+		end
+	end
+	opts.on('-a', '--abort', 'Forcibly stops SBCP') do
+		puts 'Are you sure? This will forcibly stop the control panel. Some data may be lost as a result.'
+		puts "Type 'yes' to continue."
+		if gets.chomp == 'yes' then
+			# kill sbcp
+		else
+			puts 'The control panel was not aborted.'
+		end
+	end
+	opts.on_tail('-S', '--setup', 'Performs first time setup') do
+		puts 'It is highly reccommended to NOT re-run the first time setup.'
+		puts 'If this is your first time running setup, press enter to continue.'
+		puts "Otherwise, type 'exit' to cancel."
+		unless gets.chomp == 'exit' then
+			IO.popen('bundle install') do |output| 
+				while line = output.gets
+					puts line
+				end 
+			end
+		end
+	end
+
+	opts.on_tail('-h', '--help', 'Show this message') do
+		puts opts
+		exit
+	end
+end
+ARGV << '-h' if ARGV.empty?
+begin o.parse!
+rescue OptionParser::MissingArgument => e
+	puts e
+	puts 'Please provide an arguement.'
+	puts "Example: sbcp #{e.to_s.split(' ').last} <arg>"
+rescue OptionParser::InvalidOption => e
+	puts e
+	puts o 
+	exit 1
+end
