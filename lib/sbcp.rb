@@ -7,7 +7,6 @@ require 'logger'
 require 'pry'
 
 require 'sbcp/daemon'
-require 'sbcp/version'
 
 module SBCP
   class Panel < Sinatra::Base
@@ -24,7 +23,7 @@ module SBCP
 			:path => '/',
 			:expire_after => 3600 # In seconds
 	end
-	Process.daemon(nochdir=true, noclose=true)
+	Process.daemon unless settings.environment == :development
 	run! if app_file == $0
   end
 end

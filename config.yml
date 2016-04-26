@@ -1,1 +1,1 @@
-cookie_secret: DEFAULT
+backup_schedule: 'hourly'
