@@ -25,10 +25,14 @@ module SBCP
 			config = YAML.load_file(File.expand_path('../../../config.yml', __FILE__))
 
 			# Quick check for invalid config values.
-			abort('Error - Invalid log style') if not ['daily', 'restart'].include? config['log_style']
-			abort('Error - Invalid backup schedule') if not ['hourly', 2, 3, 4, 6, 8, 12, 'daily', 'restart'].include? config['backup_schedule']
+			abort('Error - Invalid starbound directory') if not Dir.exist?(config['starbound_directory']) && Dir.exist?(config['starbound_directory'] + '/giraffe_storage')
 			abort('Error - Invalid backup directory') if not Dir.exist?(config['backup_directory'])
+			abort('Error - Invalid backup schedule') if not ['hourly', 2, 3, 4, 6, 8, 12, 'daily', 'restart'].include? config['backup_schedule']
+			abort('Error - Invalid backup history') if not config['backup_history'] >= 1 || config['backup_history'] == 'none'
 			abort('Error - Invalid log directory') if not Dir.exist?(config['log_directory'])
+			abort('Error - Invalid log history') if not config['log_history'].is_a?(Integer) && config['log_history'] >= 1
+			abort('Error - Invalid log style') if not ['daily', 'restart'].include? config['log_style']
+			abort('Error - Invalid restart schedule') if not ['hourly', 2, 3, 4, 6, 8, 12, 'daily'].include? config['restart_schedule']
 
 			# Require any present plugins
 			plugins_directory = "#{config['starbound_directory']}/sbcp/plugins"
@@ -36,7 +40,7 @@ module SBCP
 			Dir[File.join(plugins_directory, '*.rb')].each {|file| require File.basename(file) }
 
 			# We detach and daemonize this process to prevent a block in the calling executable.
-			#Process.daemon
+			Process.daemon
 
 			# We create an infinite loop so we can easily restart the server.
 			loop do 

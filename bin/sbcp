@@ -18,15 +18,15 @@ o = OptionParser.new do |opts|
 		when 'CLI'
 			require_relative '../lib/sbcp/daemon'
 			SBCP::Daemon.run
-			puts 'The control panel has been started in CLI mode.'
+			@cli.say('The control panel has been started in CLI mode.')
 		when 'GUI'
-			puts 'Currently unsupported.'
+			abort('Currently unsupported.')
 			#require '../lib/sbcp'
 			#SBCP::Panel.run!
 			#puts "The control panel has been started in GUI mode."
 			#puts "Access the GUI at <ipaddress>:4567 in your web browser."
 		else
-			puts 'Please provide either CLI or GUI as an arguement.'
+			@cli.say('Please provide either CLI or GUI as an arguement.')
 		end
 	end
 
@@ -34,7 +34,20 @@ o = OptionParser.new do |opts|
 	# This may not always be successful, as Starbound is sometimes unreceptive to kill signals.
 
 	opts.on('-r', '--restart', 'Gracefully restarts the Starbound server') do
-
+		if @cli.agree('This will attempt to gracefully restart the server. Are you sure? (y/n)') then
+			@cli.say('Attempting to gracefully restart the server...')
+			pid = `pidof starbound_server`
+			if not pid.empty?
+				system("kill -15 #{pid.to_i}")
+				sleep 5
+				abort('Unable to stop the server for restart. Reboot command may be required.') if not `pidof starbound_server`.empty?
+				@cli.say('The Starbound server has been successfully stopped and will restart automatically.')
+			else
+				abort('Unable to locate the Starbound server process ID. Is it running?')
+			end
+		else
+			@cli.say('Graceful restart aborted.')
+		end
 	end
 
 	# This kills the server process almost immediately.
@@ -42,9 +55,18 @@ o = OptionParser.new do |opts|
 
 	opts.on('-R', '--reboot', 'Forcibly restarts the Starbound server') do
 		if @cli.agree('This will forcibly restart the server. Some data may be lost as a result. Are you sure? (y/n)') then
-			# restart server
+			@cli.say('Attempting to forcefully reboot the server...')
+			pid = `pidof starbound_server`
+			if not pid.empty?
+				system("kill -9 #{pid.to_i}")
+				sleep 2
+				abort('Unable to forcefully reboot the server. Try again?') if not `pidof starbound_server`.empty?
+				@cli.say('The Starbound server has been successfully stopped and will restart automatically.')
+			else
+				abort('Unable to locate the Starbound server process ID. Is it running?')
+			end
 		else
-			puts 'Force restart aborted.'
+			@cli.say('Force restart aborted.')
 		end
 	end
 
@@ -53,22 +75,26 @@ o = OptionParser.new do |opts|
 	# The temporary file is removed when we call file.unlink
 
 	opts.on('-g', '--grace', 'Gracefully stops the Starbound server') do
-		require 'tempfile'
-		puts 'Attempting to gracefully stop the Starbound server...'
-		begin
-			file = Tempfile.new('sb-shutdown')
-			pid = `pidof starbound_server`
-			if not pid.empty?
-				system("kill -15 #{pid.to_i}")
-				sleep 5
-				abort('Unable to gracefully stop the server. Force may be neccesary.') if not `pidof starbound_server`.empty?
-				puts 'The Starbound server has been successfully stopped.'
-			else
-				abort('Unable to locate the Starbound server process ID. Is it running?')
+		if @cli.agree('This will attempt to gracefully stop the server. Are you sure? (y/n)') then
+			require 'tempfile'
+			@cli.say('Attempting to gracefully stop the Starbound server...')
+			begin
+				file = Tempfile.new('sb-shutdown')
+				pid = `pidof starbound_server`
+				if not pid.empty?
+					system("kill -15 #{pid.to_i}")
+					sleep 5
+					abort('Unable to gracefully stop the server. Force may be neccesary.') if not `pidof starbound_server`.empty?
+					@cli.say('The Starbound server has been successfully stopped.')
+				else
+					abort('Unable to locate the Starbound server process ID. Is it running?')
+				end
+			ensure
+				file.close
+				file.unlink
 			end
-		ensure
-			file.close
-			file.unlink
+		else
+			@cli.say('Server shutdown aborted.')
 		end
 	end
 
@@ -77,9 +103,24 @@ o = OptionParser.new do |opts|
 	opts.on('-K', '--kill', 'Forcibly stops the Starbound server') do
 		 if @cli.agree('This will forcibly stop the server. Some data may be lost as a result. Are you sure? (y/n)') then
 			require 'tempfile'
-
+			@cli.say('Attempting to forcefully stop the Starbound server...')
+			begin
+				file = Tempfile.new('sb-shutdown')
+				pid = `pidof starbound_server`
+				if not pid.empty?
+					system("kill -9 #{pid.to_i}")
+					sleep 2
+					abort('Unable to forcefully stop the server. Try again?') if not `pidof starbound_server`.empty?
+					@cli.say('The Starbound server has been successfully stopped.')
+				else
+					abort('Unable to locate the Starbound server process ID. Is it running?')
+				end
+			ensure
+				file.close
+				file.unlink
+			end
 		else
-			puts 'Force stop aborted.'
+			@cli.say('Force stop aborted.')
 		end
 	end
 
@@ -88,39 +129,39 @@ o = OptionParser.new do |opts|
 	# There will be support for Steam IDs if/when Starbound supports them.
 
 	opts.on('-k', '--kick TYPE', [:uuid, :name, :ip], 'Kicks a specified player by either UUID, Name, or IP') do |type|
-		
+		@cli.say('Feature unimplemented yet.')
 	end
 
 	# Same as the kick command, except for a specified time period or permanently.
 	# Can be reverse with the unban command.
 
 	opts.on('-b', '--ban TYPE', [:uuid, :name, :ip], 'Bans a specified player by either UUID, Name, or IP') do |type|
-
+		@cli.say('Feature unimplemented yet.')
 	end
 
 	# Removes a previously assigned ban on a player based on criteria.
 	# It will return an error if the specified critera doesn't exist.
 
 	opts.on('-u', '--unban TYPE', [:uuid, :name, :ip], 'Unbans a specified player by either UUID, Name, or IP') do |type|
-
+		@cli.say('Feature unimplemented yet.')
 	end
 
 	# Allows an admin to easily grab the most recent information.
 	# Supports up to the last 100 lines.
 
 	opts.on('-l', '--list TYPE', [:bans, :connections, :logs], 'Lists the last X lines of the specified data type. (bans, connections, or logs)') do |type|
-
+		@cli.say('Feature unimplemented yet.')
 	end
 
 	# This command creates a full backup of all Starbound and SBCP data.
 	# This includes: Starbound world files, logs files, and the SBCP database.
 
-	opts.on('-B', '--backup', 'Creates a backup of all Starbound worlds, logs, and SBCP data') do
-		if @cli.agree("Are you sure? This will create a backup of all Starbound and SBCP data.\nIf the Starbound server is running, it may experience brief sluggishness.") then
+	opts.on('-B', '--backup [TYPE]', 'Creates a backup of the specified data. (starbound, sbcp, or full)') do |type|
+		if @cli.agree("Are you sure? This will start the backup process.\nIf the Starbound server is running, it may experience brief sluggishness.") then
 			require_relative '../lib/sbcp/backup'
-			SBCP::Backup.create_backup
+			SBCP::Backup.create_backup(type)
 		else
-			puts 'Backup aborted.'
+			@cli.say('Backup aborted.')
 		end
 	end
 
@@ -147,7 +188,7 @@ o = OptionParser.new do |opts|
 		puts 'Are you sure? This will forcibly stop the control panel. Some data may be lost as a result.'
 		puts "Type 'yes' to continue."
 		if gets.chomp == 'yes' then
-			# kill sbcp
+			system
 		else
 			puts 'The control panel was not aborted.'
 		end
@@ -158,6 +199,8 @@ o = OptionParser.new do |opts|
 
 	opts.on_tail('-c', '--config', 'Opens the config menu') do
 		require 'yaml'
+		#@cli.say('NOTICE: SBCP must be restarted for any changes to take effect. (GUI mode only)')
+		@cli.say('NOTICE: Starbound must be restarted for any changes to take effect.')
 		config_menu(:main)
 	end
 
@@ -187,9 +230,13 @@ o = OptionParser.new do |opts|
 			if result.empty?
 				@cli.say('Unable to locate the Starbound installation directory.')
 				a = ''
-				until Dir.exist?(a) && Dir.exist?(a + '/giraffe_storage')
+				until Dir.exist?(a) && Dir.exist?(a + '/giraffe_storage') && File.writable?(a)
 					a = @cli.ask("Please locate the directory manually and enter it below.\n> ")
-					@cli.say('This dirctory does not exist or is not a Starbound installation. Try again.') if not Dir.exist?(a) && Dir.exist?(a + '/giraffe_storage')
+					if not Dir.exist?(a) && Dir.exist?(a + '/giraffe_storage')
+						@cli.say('Error - This dirctory does not exist or is not a Starbound installation. Try again.')
+					elsif not File.writable?(a)
+						@cli.say('Error - This dirctory cannot be written to. Check permissions and try again.')
+					end
 				end
 				config['starbound_directory'] = a
 			else
@@ -199,7 +246,7 @@ o = OptionParser.new do |opts|
 						menu.prompt = "Please select a directory\n> "
 						result.each do |dir|
 							dir = dir.split("/")[0..3].join("/") 
-							menu.choice(dir) { config['starbound_directory'] = dir }
+							menu.choice(dir) { abort('Error - This directory cannot be written to. Check permissions and try again.') if not File.writable?(dir); config['starbound_directory'] = dir }
 						end
 					end
 					@cli.say("Starbound installation directory set to \"#{config['starbound_directory']}\"")
@@ -207,6 +254,7 @@ o = OptionParser.new do |opts|
 					r = result.first.split("/")[0..3].join("/") 
 					@cli.say('SBCP successfully located the Starbound installation directory at:')
 					@cli.say("\"#{r}\"")
+					abort('Error - This directory cannot be written to. Check permissions and try again.') if not File.writable?(r)
 					config['starbound_directory'] = r
 				end
 			end
@@ -221,7 +269,7 @@ o = OptionParser.new do |opts|
 				FileUtils.mkdir "#{root}/sbcp/backups" if not Dir.exist?("#{root}/sbcp/backups")
 				FileUtils.mkdir "#{root}/sbcp/logs" if not Dir.exist?("#{root}/sbcp/logs")
 				config['backup_directory'] = "#{root}/sbcp/backups"
-				config['logs_directory'] = "#{root}/sbcp/logs"
+				config['log_directory'] = "#{root}/sbcp/logs"
 			else
 				# Let's run through some of the custom config options.
 				# TODO
@@ -229,7 +277,7 @@ o = OptionParser.new do |opts|
 
 			# Create the plugins directory and readme
 			FileUtils.mkdir_p "#{root}/sbcp/plugins" if not Dir.exist?("#{root}/sbcp/plugins")
-			File.write("#{root}/sbcp/plugins/README.txt", "You can extend or change SBCP's behavior by writing your own Ruby plugins and placing them here.\nCheck the README on GitHub for more information.")
+			File.write("#{root}/sbcp/plugins/README.txt", "You can override SBCP's behavior by writing your own Ruby plugins and placing them here.\nCheck the README on GitHub for more information.")
 
 			# We save everything back to the config file at the end.
 			File.write(File.expand_path('../../config.yml', __FILE__), config.to_yaml)
@@ -249,18 +297,202 @@ o = OptionParser.new do |opts|
 end
 
 def config_menu(menu)
+	config_file = File.expand_path('../../config.yml', __FILE__)
+	config = YAML.load_file(config_file)
 	case menu
 	when :main
 		answer = @cli.choose do |menu|
 			menu.prompt = "Please select a menu option\n> "
-			@cli.say("SBCP Configuration Menu")
+			@cli.say("=== SBCP Configuration Menu ===")
+			menu.choice(:General) { config_menu(:general) }
 			menu.choice(:Backups) { config_menu(:backups) }
 			menu.choice(:Logs) { config_menu(:logs) }
 			menu.choice(:Restarts) { config_menu(:restarts) }
+			menu.choice(:Exit) { exit }
+		end
+	when :general
+		answer = @cli.choose do |menu|
+			menu.prompt = "Please select a menu option\n> "
+			@cli.say("=== SBCP General Settings ===")
+			menu.choice('Starbound Directory') do
+				@cli.choose do |sub_menu|
+					sub_menu.prompt = "Please select a menu option\n> "
+					@cli.say("=== SBCP Starbound Directory Setting ===")
+					@cli.say('Your current starbound directory is:')
+					@cli.say("\"#{config['starbound_directory']}\"")
+					sub_menu.choice('Keep this directory') { @cli.say('Directory kept.'); config_menu(:general) }
+					sub_menu.choice('Change this directory') do
+						response = ''
+						until Dir.exist?(response) && Dir.exist?(response + '/giraffe_storage') && File.writable?(response)
+							response = @cli.ask("Please enter a new directory.\n> ")
+							if not Dir.exist?(response) && Dir.exist?(response + '/giraffe_storage')
+								@cli.say('Error - This dirctory does not exist or is not a valid starbound installation. Try again.')
+							elsif not File.writable?(response)
+								@cli.say('Error - This dirctory cannot be written to. Check permissions and try again.')
+							end
+						end
+						config['starbound_directory'] = response
+						File.write(config_file, config.to_yaml)
+						@cli.say('Changes saved successfully.')
+						config_menu(:general)
+					end
+				end
+			end
+			menu.choice('Back to Main Menu') { config_menu(:main) }
 		end
 	when :backups
+		@cli.choose do |menu|
+			menu.prompt = "Please select a menu option\n> "
+			@cli.say("=== SBCP Backup Settings ===")
+			menu.choice('Backup Directory') do
+				@cli.choose do |sub_menu|
+					sub_menu.prompt = "Please select a menu option\n> "
+					@cli.say("=== SBCP Backup Directory Setting ===")
+					@cli.say('Your current backup directory is:')
+					@cli.say("\"#{config['backup_directory']}\"")
+					sub_menu.choice('Keep this directory') { @cli.say('Directory kept.'); config_menu(:backups) }
+					sub_menu.choice('Change this directory') do
+						response = ''
+						until Dir.exist?(response) && File.writable?(response)
+							response = @cli.ask("Please enter a new directory.\n> ")
+							if not Dir.exist?(response)
+								@cli.say('Error - This dirctory does not exist. Try again.')
+							elsif not File.writable?(response)
+								@cli.say('Error - This dirctory cannot be written to. Check permissions and try again.')
+							end
+						end
+						config['backup_directory'] = response
+						File.write(config_file, config.to_yaml)
+						@cli.say('Changes saved successfully.')
+						config_menu(:backups)
+					end
+				end
+			end
+			menu.choice('Backup History') do
+				@cli.choose do |sub_menu|
+					sub_menu.prompt = "Please select a menu option\n> "
+					@cli.say("=== SBCP Backup History Setting ===")
+					@cli.say('Backups are currently set to remain archived for:')
+					@cli.say(config['backup_history'].to_s + ' days')
+					sub_menu.choice('Keep this setting') { @cli.say('Setting kept.'); config_menu(:backups) }
+					sub_menu.choice('Change this setting') do
+						response = @cli.ask("Enter a new value in days (enter 0 to disable backups)\n> ", Integer)
+						response = 'none' if response <= 0
+						config['backup_history'] = response
+						File.write(config_file, config.to_yaml)
+						@cli.say('Changes saved successfully.')
+						config_menu(:backups)
+					end
+				end
+			end
+			menu.choice('Backup Schedule') do
+				@cli.choose do |sub_menu|
+					sub_menu.prompt = "Please select a menu option\n> "
+					@cli.say("=== SBCP Backup Schedule Setting ===")
+					@cli.say('The backup schedule is currently set to:')
+					config['backup_schedule'].is_a?(Integer) ? @cli.say('Every ' + config['backup_schedule'].to_s + ' hours') : @cli.say(config['backup_schedule'].to_s)
+					sub_menu.choice('Keep this setting') { @cli.say('Setting kept.'); config_menu(:backups) }
+					sub_menu.choice('Change this setting') do
+						response = @cli.ask("Enter a new value in hours (enter 0 for on restart)\n> ", Integer) { |q| q.in = [0, 1, 2, 3, 4, 6, 8, 12, 24] }
+						response = 'restart' if response == 0
+						response = 'hourly' if response == 1
+						response = 'daily' if response == 24
+						config['backup_schedule'] = response
+						File.write(config_file, config.to_yaml)
+						@cli.say('Changes saved successfully.')
+						config_menu(:backups)
+					end
+				end
+			end
+			menu.choice('Back to Main Menu') { config_menu(:main) }
+		end
 	when :logs
+		@cli.choose do |menu|
+			menu.prompt = "Please select a menu option\n> "
+			@cli.say("=== SBCP Log Settings ===")
+			menu.choice('Log Directory') do 
+				@cli.choose do |sub_menu|
+					sub_menu.prompt = "Please select a menu option\n> "
+					@cli.say("=== SBCP Log Directory Setting ===")
+					@cli.say('Your current logs directory is:')
+					@cli.say("\"#{config['log_directory']}\"")
+					sub_menu.choice('Keep this directory') { @cli.say('Directory kept.'); config_menu(:logs) }
+					sub_menu.choice('Change this directory') do
+						response = ''
+						until Dir.exist?(response) && File.writable?(response)
+							response = @cli.ask("Please enter a new directory.\n> ")
+							if not Dir.exist?(response)
+								@cli.say('Error - This dirctory does not exist. Try again.')
+							elsif not File.writable?(response)
+								@cli.say('Error - This dirctory cannot be written to. Check permissions and try again.')
+							end
+						end
+						config['log_directory'] = response
+						File.write(config_file, config.to_yaml)
+						@cli.say('Changes saved successfully.')
+						config_menu(:logs)
+					end
+				end
+			end
+			menu.choice('Log History') do
+				@cli.choose do |sub_menu|
+					sub_menu.prompt = "Please select a menu option\n> "
+					@cli.say("=== SBCP Log History Setting ===")
+					@cli.say('Logs are currently set to remain archived for:')
+					@cli.say(config['log_history'].to_s + ' days')
+					sub_menu.choice('Keep this setting') { @cli.say('Setting kept.'); config_menu(:logs) }
+					sub_menu.choice('Change this setting') do
+						response = @cli.ask("Enter a new value in days\n> ", Integer)
+						response = 1 if not response >= 1 # Minimum value of 1 allowed
+						config['log_history'] = response
+						File.write(config_file, config.to_yaml)
+						@cli.say('Changes saved successfully.')
+						config_menu(:logs)
+					end
+				end
+			end
+			menu.choice('Log Style') do
+				@cli.choose do |sub_menu|
+					sub_menu.prompt = "Please select a menu option\n> "
+					@cli.say("=== SBCP Log Style Setting ===")
+					@cli.say('The log style is currently set to:')
+					@cli.say(config['log_style'])
+					sub_menu.choice('Keep this setting') { @cli.say('Setting kept.'); config_menu(:logs) }
+					sub_menu.choice('Change this setting') do
+						response = @cli.ask("Enter a style name (daily, restart))\n> ", String) { |q| q.in = ['daily', 'restart'] }
+						config['log_style'] = response
+						File.write(config_file, config.to_yaml)
+						@cli.say('Changes saved successfully.')
+						config_menu(:logs)
+					end
+				end
+			end
+			menu.choice('Back to Main Menu') { config_menu(:main) }
+		end
 	when :restarts
+		@cli.choose do |menu|
+			menu.prompt = "Please select a menu option\n> "
+			@cli.say("=== SBCP Restart Settings ===")
+			menu.choice('Restart Schedule') do
+				@cli.choose do |sub_menu|
+					sub_menu.prompt = "Please select a menu option\n> "
+					@cli.say("=== SBCP Restart Schedule Setting ===")
+					@cli.say('The restart schedule is currently set to:')
+					config['restart_schedule'].is_a?(Integer) ? @cli.say('Every ' + config['restart_schedule'].to_s + ' hours') : @cli.say(config['restart_schedule'].to_s)
+					sub_menu.choice('Keep this setting') { @cli.say('Setting kept.'); config_menu(:restarts) }
+					sub_menu.choice('Change this setting') do
+						response = @cli.ask("Enter a new value in hours\n> ", Integer) { |q| q.in = [1, 2, 3, 4, 6, 8, 12, 24] }
+						response = 'hourly' if response == 1
+						response = 'daily' if response == 24
+						config['restart_schedule'] = response
+						File.write(config_file, config.to_yaml)
+						@cli.say('Changes saved successfully.')
+						config_menu(:restarts)
+					end
+				end
+			end
+			menu.choice('Back to Main Menu') { config_menu(:main) }
+		end
 	end
 end
 
@@ -287,6 +519,9 @@ rescue OptionParser::InvalidArgument => e
 	when '-l'
 		puts 'Please provide bans, connections, or logs as an arguement.'
 		puts "Example: sbcp #{flag} bans"
+	when '-B'
+		puts 'Please provide starbound, sbcp, or full as an arguement.'
+		puts "Example: sbcp #{flag} starbound"
 	end
 rescue OptionParser::InvalidOption => e
 	puts e
