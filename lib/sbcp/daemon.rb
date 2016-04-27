@@ -1,4 +1,5 @@
 require 'yaml'
+require 'logger'
 require 'celluloid/current'
 require_relative 'starbound'
 require_relative 'backup'
@@ -18,13 +19,24 @@ module SBCP
 			# We first perform a check to ensure that the server isn't already running.
 			abort('Starbound is already running.') if not `pidof starbound_server`.empty?
 
-			# We detach and daemonize this process to prevent a block in the calling executable.
-			Process.daemon
-
-			# First, we should load the config values into a local variable.
+			# We should load the config values into a local variable.
 			# Since CLI mode does not create an instance of the daemon method,
 			# we have to set things up separately so they can be used.
 			config = YAML.load_file(File.expand_path('../../../config.yml', __FILE__))
+
+			# Quick check for invalid config values.
+			abort('Error - Invalid log style') if not ['daily', 'restart'].include? config['log_style']
+			abort('Error - Invalid backup schedule') if not ['hourly', 2, 3, 4, 6, 8, 12, 'daily', 'restart'].include? config['backup_schedule']
+			abort('Error - Invalid backup directory') if not Dir.exist?(config['backup_directory'])
+			abort('Error - Invalid log directory') if not Dir.exist?(config['log_directory'])
+
+			# Require any present plugins
+			plugins_directory = "#{config['starbound_directory']}/sbcp/plugins"
+			$LOAD_PATH.unshift(plugins_directory)
+			Dir[File.join(plugins_directory, '*.rb')].each {|file| require File.basename(file) }
+
+			# We detach and daemonize this process to prevent a block in the calling executable.
+			#Process.daemon
 
 			# We create an infinite loop so we can easily restart the server.
 			loop do 
@@ -40,8 +52,8 @@ module SBCP
 
 				# Once the server has finished running, we'll want to rotate our logfiles.
 				# We'll also take backups here if they've been set to behave that way.
-				SBCP::Logs.rotate
-				SBCP::Backup.create_backup if config['backup_schedule'] == 'restart'
+				#SBCP::Logs.rotate
+				#SBCP::Backup.create_backup if config['backup_schedule'] == 'restart'
 
 				# Now we must determine if the server was closed intentionally.
 				# If the server was shut down on purpose, we don't want to automatically restart it.

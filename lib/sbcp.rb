@@ -4,7 +4,7 @@ require 'sinatra/flash'
 require 'securerandom'
 require 'fileutils'
 require 'logger'
-require 'pry'
+require 'yaml'
 
 require 'sbcp/daemon'
 
@@ -12,7 +12,7 @@ module SBCP
   class Panel < Sinatra::Base
   	register Sinatra::Contrib
   	register Sinatra::Flash
-  	config_file 'config.yml'
+  	config = YAML.load_file(File.expand_path('../../config.yml', __FILE__))
   	configure do
 		set :environment, :development
 		set :server, 'thin'
@@ -24,6 +24,10 @@ module SBCP
 			:expire_after => 3600 # In seconds
 	end
 	Process.daemon unless settings.environment == :development
+	# Require any present plugins
+	plugins_directory = "#{config['starbound_directory']}/sbcp/plugins"
+	$LOAD_PATH.unshift(plugins_directory)
+	Dir[File.join(plugins_directory, '*.rb')].each {|file| require File.basename(file) }
 	run! if app_file == $0
   end
 end

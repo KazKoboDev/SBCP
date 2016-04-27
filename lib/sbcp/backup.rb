@@ -1,6 +1,5 @@
 module SBCP
 	class Backup
-		include Celluloid
 
 		# This methods backs up various files.
 		# It supports 3 types of backups.

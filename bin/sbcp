@@ -158,13 +158,7 @@ o = OptionParser.new do |opts|
 
 	opts.on_tail('-c', '--config', 'Opens the config menu') do
 		require 'yaml'
-		answer = @cli.choose do |menu|
-			menu.prompt = "Please select a menu option\n> "
-			@cli.say("SBCP Configuration Menu")
-			menu.choice(:Backups) { config_menu(:backups) }
-			menu.choice(:Logs) { config_menu(:logs) }
-			menu.choice(:Restarts) { config_menu(:restarts) }
-		end
+		config_menu(:main)
 	end
 
 	# This sets SBCP up for proper usage.
@@ -172,11 +166,12 @@ o = OptionParser.new do |opts|
 
 	opts.on_tail('-S', '--setup', 'Performs first time setup') do
 		require 'yaml'
+		require 'fileutils'
 		config = YAML.load_file(File.expand_path('../../config.yml', __FILE__))
-		puts 'It is highly reccommended to NOT re-run the first time setup.'
-		puts 'If this is your first time running setup, press enter to continue.'
-		puts "Otherwise, type 'exit' to cancel."
-		unless gets.chomp == 'exit' then
+		@cli.say('Are you sure you want to run the first-time setup? (y/n)')
+		@cli.say("If this is your first time running setup, type 'yes' to continue.")
+		response = @cli.agree("Otherwise, type 'no' to cancel.")
+		if response # If response is true, continue
 			#IO.popen('bundle install') do |output| 
 			#	while line = output.gets
 			#		puts line
@@ -185,26 +180,63 @@ o = OptionParser.new do |opts|
 
 			# First, we must attempt to locate where Starbound is installed.
 			# This performs a recursive search on the OS for a folder named 'giraffe_storage'
+			@cli.newline
 			@cli.say('SBCP is starting up...')
 			@cli.say('SBCP is attempting to automatically locate Starbound...')
-			result = [] #Dir.glob('/**/*/giraffe_storage')
+			result = Dir.glob('/**/*/giraffe_storage')
 			if result.empty?
 				@cli.say('Unable to locate the Starbound installation directory.')
 				a = ''
-				until File.exist?(a)
+				until Dir.exist?(a) && Dir.exist?(a + '/giraffe_storage')
 					a = @cli.ask("Please locate the directory manually and enter it below.\n> ")
-					@cli.say('This dirctory does not exist. Try again.') if not File.exist?(a)
+					@cli.say('This dirctory does not exist or is not a Starbound installation. Try again.') if not Dir.exist?(a) && Dir.exist?(a + '/giraffe_storage')
 				end
 				config['starbound_directory'] = a
 			else
+				if result.count > 1
+					@cli.say('SBCP encountered multiple possible directories.')
+					answer = @cli.choose do |menu|
+						menu.prompt = "Please select a directory\n> "
+						result.each do |dir|
+							dir = dir.split("/")[0..3].join("/") 
+							menu.choice(dir) { config['starbound_directory'] = dir }
+						end
+					end
+					@cli.say("Starbound installation directory set to \"#{config['starbound_directory']}\"")
+				else
+					r = result.first.split("/")[0..3].join("/") 
+					@cli.say('SBCP successfully located the Starbound installation directory at:')
+					@cli.say("\"#{r}\"")
+					config['starbound_directory'] = r
+				end
 			end
+			root = config['starbound_directory']
 
+			@cli.newline
 			@cli.say("Welcome to SBCP.")
 			@cli.say("You can change any options later by running the config command. (sbcp -c)")
-			if not @cli.agree("Would you like to skip setup and just use SBCP's default settings? (See README)")
-
+			if @cli.agree("Would you like to skip setup and just use SBCP's default settings? (See README) (y/n)")
+				# So we're running with the defaults. Let's get 'em setup!
+				FileUtils.mkdir "#{root}/sbcp" if not Dir.exist?("#{root}/sbcp")
+				FileUtils.mkdir "#{root}/sbcp/backups" if not Dir.exist?("#{root}/sbcp/backups")
+				FileUtils.mkdir "#{root}/sbcp/logs" if not Dir.exist?("#{root}/sbcp/logs")
+				config['backup_directory'] = "#{root}/sbcp/backups"
+				config['logs_directory'] = "#{root}/sbcp/logs"
+			else
+				# Let's run through some of the custom config options.
+				# TODO
 			end
+
+			# Create the plugins directory and readme
+			FileUtils.mkdir_p "#{root}/sbcp/plugins" if not Dir.exist?("#{root}/sbcp/plugins")
+			File.write("#{root}/sbcp/plugins/README.txt", "You can extend or change SBCP's behavior by writing your own Ruby plugins and placing them here.\nCheck the README on GitHub for more information.")
+
+			# We save everything back to the config file at the end.
 			File.write(File.expand_path('../../config.yml', __FILE__), config.to_yaml)
+
+			@cli.newline
+			@cli.say('SBCP has been configured successfully.')
+			@cli.say('Type sbcp -h for a list of commands.')
 		end
 	end
 
@@ -218,7 +250,17 @@ end
 
 def config_menu(menu)
 	case menu
-	when 'hello'
+	when :main
+		answer = @cli.choose do |menu|
+			menu.prompt = "Please select a menu option\n> "
+			@cli.say("SBCP Configuration Menu")
+			menu.choice(:Backups) { config_menu(:backups) }
+			menu.choice(:Logs) { config_menu(:logs) }
+			menu.choice(:Restarts) { config_menu(:restarts) }
+		end
+	when :backups
+	when :logs
+	when :restarts
 	end
 end
 
