@@ -2,6 +2,7 @@ require 'yaml'
 require 'celluloid/current'
 require_relative 'starbound'
 require_relative 'backup'
+require_relative 'logs'
 module SBCP
 	class Daemon
 		def initialize
@@ -18,7 +19,7 @@ module SBCP
 			abort('Starbound is already running.') if not `pidof starbound_server`.empty?
 
 			# We detach and daemonize this process to prevent a block in the calling executable.
-			#Process.daemon
+			Process.daemon
 
 			# First, we should load the config values into a local variable.
 			# Since CLI mode does not create an instance of the daemon method,
@@ -39,26 +40,15 @@ module SBCP
 
 				# Once the server has finished running, we'll want to rotate our logfiles.
 				# We'll also take backups here if they've been set to behave that way.
-				server.rotate_logs
-				server.create_backup if config['backup_schedule'] == 'restart'
+				SBCP::Logs.rotate
+				SBCP::Backup.create_backup if config['backup_schedule'] == 'restart'
 
 				# Now we must determine if the server was closed intentionally.
 				# If the server was shut down on purpose, we don't want to automatically restart it.
 				# If the shutdown file exists, it was an intentional shutdown.
 				# We break the loop which ends the method and closes the Daemon process.
-				shutdown = File.expand_path('../../../tmp/shutdown', __FILE__)
-				if File.exist?(shutdown)
-					# We remove the shutdown file to avoid any confusion later.
-					File.delete(shutdown)
-					server.terminate # Required by Celluloid's design
-					break
-				end
+				break if not Dir.glob('/tmp/sb-shutdown*').empty?
 			end
-		end
-
-		# We make the full backup method a class method so it can be called via CLI.
-		# However, it is also used in GUI mode to take manual backups.
-		def self.create_full_backup
 		end
 
 		private
@@ -83,9 +73,6 @@ module SBCP
 		end
 
 		def server_status
-		end
-
-		def create_backup
 		end
   	end
 end

@@ -6,10 +6,16 @@ module SBCP
 		end
 
 		def start
-			loop do
-				puts @config
-				sleep 2
+			logs_dir = @config['logs_dir']
+			stamp = "#{Time.now.strftime("%Y-%m-%d-%H-%M-%S")}-sbcp-gamelog"
+			log = File.new("#{logs_dir}/#{stamp}.log", 'w+')
+			IO.popen() do |output|
+				while line = gets
+					log.write "hullo"
+				end
 			end
+		ensure
+			log.close
 		end
 
 		# The two methods below were implemeneted in the Starbound class because

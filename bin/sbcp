@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 
 require 'optparse'
+require 'highline'
 require_relative '../lib/sbcp/version'
 
 o = OptionParser.new do |opts|
@@ -12,19 +13,20 @@ o = OptionParser.new do |opts|
 	# CLI mode disables the web server to improve performance.
 
 	opts.on('-s', '--start [MODE]', 'Starts SBCP in either CLI or GUI mode (Default: CLI)') do |mode|
-		mode = 'invalid' if mode == nil
+		mode = 'CLI' if mode == nil
 		case mode.upcase
-		when "CLI"
-			require 'daemon'
+		when 'CLI'
+			require_relative '../lib/sbcp/daemon'
 			SBCP::Daemon.run
-			puts "The control panel has been started in CLI mode."
-		when "GUI"
-			require 'sbcp'
-			SBCP::Panel.run!
-			puts "The control panel has been started in GUI mode."
-			puts "Access the GUI at <ipaddress>:4567 in your web browser."
+			puts 'The control panel has been started in CLI mode.'
+		when 'GUI'
+			puts 'Currently unsupported.'
+			#require '../lib/sbcp'
+			#SBCP::Panel.run!
+			#puts "The control panel has been started in GUI mode."
+			#puts "Access the GUI at <ipaddress>:4567 in your web browser."
 		else
-			puts 'Please provide either CLI (Command Line Interface) or GUI (Graphical User Interface) as an arguement.'
+			puts 'Please provide either CLI or GUI as an arguement.'
 		end
 	end
 
@@ -39,9 +41,7 @@ o = OptionParser.new do |opts|
 	# This just stops it cold in it's tracks, so it's possible to lose information stored in memory.
 
 	opts.on('-R', '--reboot', 'Forcibly restarts the Starbound server') do
-		puts 'Are you sure? This will forcibly restart the server. Some data may be lost as a result.'
-		puts "Type 'yes' to continue."
-		if gets.chomp == 'yes' then
+		if @cli.agree('This will forcibly restart the server. Some data may be lost as a result. Are you sure? (y/n)') then
 			# restart server
 		else
 			puts 'Force restart aborted.'
@@ -49,15 +49,23 @@ o = OptionParser.new do |opts|
 	end
 
 	# Same as the graceful restart option, only the server doesn't come back automatically.
+	# We create a temporary file to indicate that we don't want the server to restart.
+	# The temporary file is removed when we call file.unlink
 
 	opts.on('-g', '--grace', 'Gracefully stops the Starbound server') do
 		require 'tempfile'
 		puts 'Attempting to gracefully stop the Starbound server...'
 		begin
-			file = Tempfile.new('shutdown', File.expand_path('../../tmp', __FILE__))
-			system("kill -15 `pidof starbound_server`")
-			sleep 5
-			abort('Unable to gracefully stop the server. Force may be neccesary.') if not `pidof starbound_server`.empty?
+			file = Tempfile.new('sb-shutdown')
+			pid = `pidof starbound_server`
+			if not pid.empty?
+				system("kill -15 #{pid.to_i}")
+				sleep 5
+				abort('Unable to gracefully stop the server. Force may be neccesary.') if not `pidof starbound_server`.empty?
+				puts 'The Starbound server has been successfully stopped.'
+			else
+				abort('Unable to locate the Starbound server process ID. Is it running?')
+			end
 		ensure
 			file.close
 			file.unlink
@@ -67,9 +75,7 @@ o = OptionParser.new do |opts|
 	# Same as the force restart option, without the server coming back automatically.
 
 	opts.on('-K', '--kill', 'Forcibly stops the Starbound server') do
-		puts 'Are you sure? This will forcibly stop the server. Some data may be lost as a result.'
-		puts "Type 'yes' to continue."
-		if gets.chomp == 'yes' then
+		 if @cli.agree('This will forcibly stop the server. Some data may be lost as a result. Are you sure? (y/n)') then
 			require 'tempfile'
 
 		else
@@ -99,16 +105,20 @@ o = OptionParser.new do |opts|
 
 	end
 
+	# Allows an admin to easily grab the most recent information.
+	# Supports up to the last 100 lines.
+
+	opts.on('-l', '--list TYPE', [:bans, :connections, :logs], 'Lists the last X lines of the specified data type. (bans, connections, or logs)') do |type|
+
+	end
+
 	# This command creates a full backup of all Starbound and SBCP data.
 	# This includes: Starbound world files, logs files, and the SBCP database.
 
 	opts.on('-B', '--backup', 'Creates a backup of all Starbound worlds, logs, and SBCP data') do
-		puts 'Are you sure? This will create a backup of all Starbound and SBCP data.'
-		puts 'If the Starbound server is running, it may experience brief sluggishness.'
-		puts "Type 'yes' to continue."
-		if gets.chomp == 'yes' then
-			require 'daemon'
-			SBCP::Daemon.create_full_backup
+		if @cli.agree("Are you sure? This will create a backup of all Starbound and SBCP data.\nIf the Starbound server is running, it may experience brief sluggishness.") then
+			require_relative '../lib/sbcp/backup'
+			SBCP::Backup.create_backup
 		else
 			puts 'Backup aborted.'
 		end
@@ -143,19 +153,58 @@ o = OptionParser.new do |opts|
 		end
 	end
 
+	# Opens the config menu.
+	# What else is there to say?
+
+	opts.on_tail('-c', '--config', 'Opens the config menu') do
+		require 'yaml'
+		answer = @cli.choose do |menu|
+			menu.prompt = "Please select a menu option\n> "
+			@cli.say("SBCP Configuration Menu")
+			menu.choice(:Backups) { config_menu(:backups) }
+			menu.choice(:Logs) { config_menu(:logs) }
+			menu.choice(:Restarts) { config_menu(:restarts) }
+		end
+	end
+
 	# This sets SBCP up for proper usage.
 	# Ideally, only run once.
 
 	opts.on_tail('-S', '--setup', 'Performs first time setup') do
+		require 'yaml'
+		config = YAML.load_file(File.expand_path('../../config.yml', __FILE__))
 		puts 'It is highly reccommended to NOT re-run the first time setup.'
 		puts 'If this is your first time running setup, press enter to continue.'
 		puts "Otherwise, type 'exit' to cancel."
 		unless gets.chomp == 'exit' then
-			IO.popen('bundle install') do |output| 
-				while line = output.gets
-					puts line
-				end 
+			#IO.popen('bundle install') do |output| 
+			#	while line = output.gets
+			#		puts line
+			#	end 
+			#end
+
+			# First, we must attempt to locate where Starbound is installed.
+			# This performs a recursive search on the OS for a folder named 'giraffe_storage'
+			@cli.say('SBCP is starting up...')
+			@cli.say('SBCP is attempting to automatically locate Starbound...')
+			result = [] #Dir.glob('/**/*/giraffe_storage')
+			if result.empty?
+				@cli.say('Unable to locate the Starbound installation directory.')
+				a = ''
+				until File.exist?(a)
+					a = @cli.ask("Please locate the directory manually and enter it below.\n> ")
+					@cli.say('This dirctory does not exist. Try again.') if not File.exist?(a)
+				end
+				config['starbound_directory'] = a
+			else
 			end
+
+			@cli.say("Welcome to SBCP.")
+			@cli.say("You can change any options later by running the config command. (sbcp -c)")
+			if not @cli.agree("Would you like to skip setup and just use SBCP's default settings? (See README)")
+
+			end
+			File.write(File.expand_path('../../config.yml', __FILE__), config.to_yaml)
 		end
 	end
 
@@ -166,12 +215,37 @@ o = OptionParser.new do |opts|
 		exit
 	end
 end
+
+def config_menu(menu)
+	case menu
+	when 'hello'
+	end
+end
+
 ARGV << '-h' if ARGV.empty? # Displays help if no arguements given.
+@cli = HighLine.new # Initialize highline object
 begin o.parse!
 rescue OptionParser::MissingArgument => e
 	puts e
 	puts 'Please provide an arguement.'
 	puts "Example: sbcp #{e.to_s.split(' ').last} <arg>"
+rescue OptionParser::InvalidArgument => e
+	puts e
+	flag = e.to_s.split(' ')[2]
+	case flag
+	when '-k'
+		puts 'Please provide uuid, name, or ip as an arguement.'
+		puts "Example: sbcp #{flag} uuid"
+	when '-b'
+		puts 'Please provide uuid, name, or ip as an arguement.'
+		puts "Example: sbcp #{flag} name"
+	when '-u'
+		puts 'Please provide uuid, name, or ip as an arguement.'
+		puts "Example: sbcp #{flag} ip"
+	when '-l'
+		puts 'Please provide bans, connections, or logs as an arguement.'
+		puts "Example: sbcp #{flag} bans"
+	end
 rescue OptionParser::InvalidOption => e
 	puts e
 	puts o 

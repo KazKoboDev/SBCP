@@ -39,7 +39,8 @@ Gem::Specification.new do |spec|
   spec.add_runtime_dependency 'steam-condenser', '~> 1.3', '>= 1.3.11'
   spec.add_runtime_dependency 'rsync', '~> 1.0', '>= 1.0.9'
   spec.add_runtime_dependency 'logrotate', '~> 1.2', '>= 1.2.1'
-  spec.add_runtime_dependency 'rbzip2', '~> 0.2.0' # ruby_seven_zip would not compile, using this instead
+  spec.add_runtime_dependency 'rbzip2', '~> 0.2.0' # seven_zip_ruby would not compile, using this instead
+  spec.add_runtime_dependency 'highline', '~> 1.7', '>= 1.7.8'
 
 
   spec.add_development_dependency 'bundler', '~> 1.11'
