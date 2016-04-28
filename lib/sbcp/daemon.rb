@@ -37,6 +37,7 @@ module SBCP
 			config = YAML.load_file(File.expand_path('../../../config.yml', __FILE__))
 
 			# Quick check for invalid config values.
+			abort('Please run sbcp --setup first.') if not config['starbound_directory'].nil?
 			abort('Error - Invalid starbound directory') if not Dir.exist?(config['starbound_directory']) && Dir.exist?(config['starbound_directory'] + '/giraffe_storage')
 			abort('Error - Invalid backup directory') if not Dir.exist?(config['backup_directory'])
 			abort('Error - Invalid backup schedule') if not ['hourly', 2, 3, 4, 6, 8, 12, 'daily', 'restart'].include? config['backup_schedule']
