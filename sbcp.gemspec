@@ -11,7 +11,7 @@ Gem::Specification.new do |spec|
 
   spec.summary       = %q{SBCP is a Starbound server management solution for Linux.}
   spec.homepage      = 'https://www.kazyyk.com/sbcp'
-  spec.license       = 'AGPLv3'
+  spec.license       = 'GNU AGPLv3'
 
   spec.files         = `git ls-files -z`.split("\x0").reject { |f| f.match(%r{^(test|spec|features)/}) }
   spec.bindir        = 'bin'
