@@ -1,6 +1,6 @@
 # Starbound Control Panel
 
-Starbound Control Panel, or SBCP for short, is a Ruby gem that allows server owners to easily manage their servers. It behaves similarly to a wrapper without intercepting connections, relying solely on output. It is my first majorly released project on GitHub, as well as my first RubyGem.
+Starbound Control Panel, or SBCP for short, is a Ruby gem that allows server owners to easily manage their servers. It behaves similarly to a wrapper without intercepting connections, relying solely on output. It is my first released project on GitHub, as well as my first Ruby gem.
 
 ## Features
 
