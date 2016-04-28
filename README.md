@@ -1,38 +1,87 @@
 # Starbound Control Panel
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/sbcp`. To experiment with that code, run `bin/console` for an interactive prompt.
+Starbound Control Panel, or SBCP for short, is a Ruby gem that allows server owners to easily manage their servers. It behaves similarly to a wrapper without intercepting connections, relying solely on output. It is my first majorly released project on GitHub, as well as my first RubyGem.
 
-TODO: Delete this and the text above, and describe your gem
+## Features
+
+* Relatively easy to install and setup
+* Fully automated backups
+* Fully automated restarts (including recovery from crashes)
+* Easy server managment commands (start, restart, stop, etc.)
+* Intuitive configuration menu for adjusting internal settings
+
+## Requirements
+
+SBCP was designed for Linux and developed on Ubuntu. It has been tested on Ubuntu Server 16.04.
+
+SBCP was developed on Ruby 2.3.0.
+
+Your mileage may vary.
 
 ## Installation
 
-Add this line to your application's Gemfile:
+If you don't have Ruby installed, you'll need it.
+I reccommend using [RVM](https://rvm.io/rvm/install):
 
-```ruby
-gem 'sbcp'
-```
+    $ gpg --keyserver hkp://keys.gnupg.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3
+    $ \curl -sSL https://get.rvm.io | bash -s stable --ruby=2.3.0
 
-And then execute:
+If you already have RVM:
 
-    $ bundle
+    $ rvm install ruby-2.3.0
+    $ rvm use ruby-2.3.0
 
-Or install it yourself as:
+Now just install the SBCP gem:
 
     $ gem install sbcp
 
 ## Usage
 
-TODO: Write usage instructions here
+You'll find that SBCP won't work properly without some additional configuration.
 
-## Development
+Go ahead and start this process with the setup command:
 
-After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake test` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
+    $ sbcp --setup
+    
+It will attempt to ascertain the location of your Starbound server's installation directory.
 
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+Afterwards, it will ask if you want to use the default values. All default directories are based out of the Starbound installation directory. These values are:
+* Backup Directory: ../sbcp/backups
+* Backup History: 90 days
+* Backup Schedule: Hourly
+* Log Directory: ../sbcp/logs
+* Log History: 90 days
+* Log Style: Daily
+* Restart Schedule: Every 4 Hours
+
+Once this is finished, you can just do this for commands:
+
+    $ sbcp --help
+    
+Note that currently not all commands are implemented.
+
+## Plugins
+
+SBCP has rudimentary plugin support. You can override SBCP's behavior by adding your own Ruby files to the plugins folder that's created during initial setup. You'll need to examine the source material as plugins will entirely override methods, so if you're looking to make changes to existing methods you will need to copy/paste the source into your plugin before making changes. The filename of your plugin doesn't matter as all Ruby files inside the plugin folder are loaded shortly after the daemon starts.
+
+You can find the plugins folder in /sbcp/plugins, in the installation directory of your Starbound folder.
+
+## TODO
+
+SBCP isn't anywhere near complete. I have some additional features planned:
+
+* GUI mode
+* Permissions System to Allow Multiple Users of GUI mode
+* Output Parser (useful for emulating in-game commands, amongst other things)
+* RCON support
+* Better Plugin Support
+* Ban/Kick/Unban commands
+* Server announcements (including restart announcements)
+* More that I can't think of right now, I'm sure
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/sbcp.
+Bug reports and pull requests are welcome on GitHub at https://github.com/Kazyyk/SBCP.
 
 
 ## License
