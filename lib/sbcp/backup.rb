@@ -12,16 +12,16 @@ module SBCP
 		# Full: backs up both Starbound and SBCP data.
 		# Defaults to Starbound.
 
-		def self.create_backup(kind='starbound')
+		def self.create_backup(kind=:starbound)
 			config = YAML.load_file(File.expand_path('../../../config.yml', __FILE__))
 			return('Backups disabled.') if config['backup_history'] == 'none'
 			case kind
-			when 'starbound'
+			when :starbound
 				root = config['starbound_directory']
 				world_files = "#{root}/giraffe_storage/universe/*.world"
 				latest_files_directory = File.expand_path('../../../backup', __FILE__)
 				backup_directory = config['backup_directory']
-				backup_name = "#{Time.now.strftime("%m-%d-%Y-%H-%M-%S")}-universe_backup.tar.bz2"
+				backup_name = "#{Time.now.strftime("%m-%d-%Y-%H-%M-%S")}-starbound_backup.tar.bz2"
 				changed_files = Array.new
 				Rsync.run(world_files, latest_files_directory, ['-a']) do |result|
 					if result.success?
@@ -40,12 +40,19 @@ module SBCP
 						end
 					end
 				end
-			when 'sbcp'
+			when :sbcp
 				abort("Unimplemented.")
-			when 'full'
-				SBCP::Backup.create_backup('starbound')
-				#SBCP::Backup.create_backup('sbcp')
-			else
+			when :full
+				# This should take a complete backup of Starbound and SBCP.
+				# Currently only supports Starbound.
+				root = config['starbound_directory']
+				giraffe_directory = "#{root}/giraffe_storage"
+				backup_directory = config['backup_directory']
+				backup_name = "#{Time.now.strftime("%m-%d-%Y-%H-%M-%S")}-full_backup.tar.bz2"
+				FileUtils.cd('/tmp') do
+					system("tar cjpf #{backup_name} #{giraffe_directory} > /dev/null 2>&1")
+					FileUtils.mv backup_name, backup_directory # Move the created backup to the backup directory
+				end
 			end
 		end
 	end

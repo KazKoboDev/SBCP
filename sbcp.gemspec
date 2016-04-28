@@ -27,16 +27,16 @@ Gem::Specification.new do |spec|
   spec.executables   = spec.files.grep(%r{^bin/}) { |f| File.basename(f) }
   spec.require_paths = ['lib']
 
-  spec.add_runtime_dependency 'sinatra', '~> 1.4', '>= 1.4.7'
-  spec.add_runtime_dependency 'sinatra-flash', '~> 0.3.0'
-  spec.add_runtime_dependency 'sinatra-contrib', '~> 1.4', '>= 1.4.7'
-  spec.add_runtime_dependency 'thin', '~> 1.6', '>= 1.6.4'
-  spec.add_runtime_dependency 'sqlite3', '~> 1.3', '>= 1.3.11'
-  spec.add_runtime_dependency 'data_mapper', '~> 1.2'
-  spec.add_runtime_dependency 'dm-sqlite-adapter', '~> 1.2'
+  #spec.add_runtime_dependency 'sinatra', '~> 1.4', '>= 1.4.7'
+  #spec.add_runtime_dependency 'sinatra-flash', '~> 0.3.0'
+  #spec.add_runtime_dependency 'sinatra-contrib', '~> 1.4', '>= 1.4.7'
+  #spec.add_runtime_dependency 'thin', '~> 1.6', '>= 1.6.4'
+  #spec.add_runtime_dependency 'sqlite3', '~> 1.3', '>= 1.3.11'
+  #spec.add_runtime_dependency 'data_mapper', '~> 1.2'
+  #spec.add_runtime_dependency 'dm-sqlite-adapter', '~> 1.2'
   spec.add_runtime_dependency 'celluloid', '~> 0.17.3'
   spec.add_runtime_dependency 'rufus-scheduler', '~> 3.2'
-  spec.add_runtime_dependency 'steam-condenser', '~> 1.3', '>= 1.3.11'
+  #spec.add_runtime_dependency 'steam-condenser', '~> 1.3', '>= 1.3.11'
   spec.add_runtime_dependency 'rsync', '~> 1.0', '>= 1.0.9'
   spec.add_runtime_dependency 'logrotate', '~> 1.2', '>= 1.2.1'
   spec.add_runtime_dependency 'rbzip2', '~> 0.2.0' # seven_zip_ruby would not compile, using this instead

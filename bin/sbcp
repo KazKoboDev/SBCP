@@ -39,7 +39,12 @@ o = OptionParser.new do |opts|
 			pid = `pidof starbound_server`
 			if not pid.empty?
 				system("kill -15 #{pid.to_i}")
-				sleep 5
+				time = Time.now
+				diff = 0
+				until `pidof starbound_server`.empty? || diff >= 5
+					sleep 1
+					diff = Time.now - time
+				end
 				abort('Unable to stop the server for restart. Reboot command may be required.') if not `pidof starbound_server`.empty?
 				@cli.say('The Starbound server has been successfully stopped and will restart automatically.')
 			else
@@ -59,7 +64,12 @@ o = OptionParser.new do |opts|
 			pid = `pidof starbound_server`
 			if not pid.empty?
 				system("kill -9 #{pid.to_i}")
-				sleep 2
+				time = Time.now
+				diff = 0
+				until `pidof starbound_server`.empty? || diff >= 5
+					sleep 1
+					diff = Time.now - time
+				end
 				abort('Unable to forcefully reboot the server. Try again?') if not `pidof starbound_server`.empty?
 				@cli.say('The Starbound server has been successfully stopped and will restart automatically.')
 			else
@@ -83,7 +93,12 @@ o = OptionParser.new do |opts|
 				pid = `pidof starbound_server`
 				if not pid.empty?
 					system("kill -15 #{pid.to_i}")
-					sleep 5
+					time = Time.now
+					diff = 0
+					until `pidof starbound_server`.empty? || diff >= 5
+						sleep 1
+						diff = Time.now - time
+					end
 					abort('Unable to gracefully stop the server. Force may be neccesary.') if not `pidof starbound_server`.empty?
 					@cli.say('The Starbound server has been successfully stopped.')
 				else
@@ -109,7 +124,12 @@ o = OptionParser.new do |opts|
 				pid = `pidof starbound_server`
 				if not pid.empty?
 					system("kill -9 #{pid.to_i}")
-					sleep 2
+					time = Time.now
+					diff = 0
+					until `pidof starbound_server`.empty? || diff >= 5
+						sleep 1
+						diff = Time.now - time
+					end
 					abort('Unable to forcefully stop the server. Try again?') if not `pidof starbound_server`.empty?
 					@cli.say('The Starbound server has been successfully stopped.')
 				else
@@ -129,37 +149,38 @@ o = OptionParser.new do |opts|
 	# There will be support for Steam IDs if/when Starbound supports them.
 
 	opts.on('-k', '--kick TYPE', [:uuid, :name, :ip], 'Kicks a specified player by either UUID, Name, or IP') do |type|
-		@cli.say('Feature unimplemented yet.')
+		@cli.say('This feature will be added later.')
 	end
 
 	# Same as the kick command, except for a specified time period or permanently.
 	# Can be reverse with the unban command.
 
 	opts.on('-b', '--ban TYPE', [:uuid, :name, :ip], 'Bans a specified player by either UUID, Name, or IP') do |type|
-		@cli.say('Feature unimplemented yet.')
+		@cli.say('This feature will be added later.')
 	end
 
 	# Removes a previously assigned ban on a player based on criteria.
 	# It will return an error if the specified critera doesn't exist.
 
 	opts.on('-u', '--unban TYPE', [:uuid, :name, :ip], 'Unbans a specified player by either UUID, Name, or IP') do |type|
-		@cli.say('Feature unimplemented yet.')
+		@cli.say('This feature will be added later.')
 	end
 
 	# Allows an admin to easily grab the most recent information.
 	# Supports up to the last 100 lines.
 
 	opts.on('-l', '--list TYPE', [:bans, :connections, :logs], 'Lists the last X lines of the specified data type. (bans, connections, or logs)') do |type|
-		@cli.say('Feature unimplemented yet.')
+		@cli.say('This feature will be added later.')
 	end
 
 	# This command creates a full backup of all Starbound and SBCP data.
 	# This includes: Starbound world files, logs files, and the SBCP database.
 
-	opts.on('-B', '--backup [TYPE]', 'Creates a backup of the specified data. (starbound, sbcp, or full)') do |type|
+	opts.on('-B', '--backup TYPE', [:starbound, :sbcp, :full],'Creates a backup of the specified data. (starbound, sbcp, or full)') do |type|
 		if @cli.agree("Are you sure? This will start the backup process.\nIf the Starbound server is running, it may experience brief sluggishness.") then
 			require_relative '../lib/sbcp/backup'
 			SBCP::Backup.create_backup(type)
+			@cli.say('Backup has completed successfully.')
 		else
 			@cli.say('Backup aborted.')
 		end
@@ -169,26 +190,43 @@ o = OptionParser.new do |opts|
 	# It won't work if Starbound is running, so stop the Starbound server first.
 
 	opts.on('-e', '--exit', 'Gracefully stops SBCP') do
-		puts 'Are you sure? This will gracefully stop the control panel.'
-		puts 'If the Starbound server is running, you must stop it before this command will work.'
-		puts "Type 'yes' to continue."
-		if gets.chomp == 'yes' then
-			# stop SBCP
-		else
-			puts 'The control panel was not stopped.'
-		end
+		@cli.say("This feature is only used in GUI mode. GUI mode is not yet implemented.")
+		@cli.say("In CLI mode, stopping Starbound will automatically stop SBCP.")
 	end
 
-	# Sometimes things just need to be stopped forcibly.
-	# This command does that.
-	# Data in memory may be lost.
 	# Kills both SBCP and the Starbound server, if running.
+	# This command needs work. It doesn't always work properly.
+	# Usually, the starbound process has to be killed first.
+	# After that, SBCP usually closes on it's own... making this command moot.
 
 	opts.on('-a', '--abort', 'Forcibly stops SBCP') do
-		puts 'Are you sure? This will forcibly stop the control panel. Some data may be lost as a result.'
-		puts "Type 'yes' to continue."
-		if gets.chomp == 'yes' then
-			system
+		if @cli.agree('This will attempt to forcibly stop the control panel. Some data may be lost as a result. Are you sure? (y/n)') then
+			pid = `pidof starbound_server`
+			if not pid.empty?
+				system("kill -9 #{pid.to_i}")
+				time = Time.now
+				diff = 0
+				until `pidof starbound_server`.empty? || diff >= 5
+					sleep 1
+					diff = Time.now - time
+				end
+				abort('Unable to forcfully close Starbound. Try closing it separately?') if not `pidof starbound_server`.empty?
+			end
+			if not Dir.glob('/tmp/sbcp_daemon-pid*').empty?
+				pid_file = Dir.glob('/tmp/sbcp_daemon-pid*').first
+				pid = File.read(pid_file)
+				system("kill -9 #{pid.to_i}")
+				time = Time.now
+				diff = 0
+				until `ps -p #{pid.to_i} -o comm=`.empty? || diff >= 5
+					sleep 1
+					diff = Time.now - time
+				end
+				abort('Unable to forcefully stop the control panel. Try again?') if not `ps -p #{pid.to_i} -o comm=`.empty?
+				@cli.say('The control panel has been successfully stopped.')
+			else
+				@cli.say('Unable to locate the control panel process ID. Is it running?')
+			end
 		else
 			puts 'The control panel was not aborted.'
 		end
@@ -210,17 +248,10 @@ o = OptionParser.new do |opts|
 	opts.on_tail('-S', '--setup', 'Performs first time setup') do
 		require 'yaml'
 		require 'fileutils'
-		config = YAML.load_file(File.expand_path('../../config.yml', __FILE__))
-		@cli.say('Are you sure you want to run the first-time setup? (y/n)')
-		@cli.say("If this is your first time running setup, type 'yes' to continue.")
-		response = @cli.agree("Otherwise, type 'no' to cancel.")
+		config_file = File.expand_path('../../config.yml', __FILE__)
+		config = YAML.load_file(config_file)
+		response = @cli.agree('Are you sure you want to run the first-time setup? (y/n)')
 		if response # If response is true, continue
-			#IO.popen('bundle install') do |output| 
-			#	while line = output.gets
-			#		puts line
-			#	end 
-			#end
-
 			# First, we must attempt to locate where Starbound is installed.
 			# This performs a recursive search on the OS for a folder named 'giraffe_storage'
 			@cli.newline
@@ -261,8 +292,8 @@ o = OptionParser.new do |opts|
 			root = config['starbound_directory']
 
 			@cli.newline
-			@cli.say("Welcome to SBCP.")
-			@cli.say("You can change any options later by running the config command. (sbcp -c)")
+			@cli.say('Welcome to SBCP.')
+			@cli.say('You can change any options later by running the config command. (sbcp -c)')
 			if @cli.agree("Would you like to skip setup and just use SBCP's default settings? (See README) (y/n)")
 				# So we're running with the defaults. Let's get 'em setup!
 				FileUtils.mkdir "#{root}/sbcp" if not Dir.exist?("#{root}/sbcp")
@@ -271,8 +302,95 @@ o = OptionParser.new do |opts|
 				config['backup_directory'] = "#{root}/sbcp/backups"
 				config['log_directory'] = "#{root}/sbcp/logs"
 			else
-				# Let's run through some of the custom config options.
-				# TODO
+				# Backup Settings
+				@cli.newline
+				@cli.say('--- Automatic Backups ---')
+				if @cli.agree('Would you like to enable automatic backups?')
+					@cli.newline
+					@cli.say('--- Backup Directory Location ---')
+					answer = ''
+					until Dir.exist?(answer) && File.writable?(answer) || answer == 'default'
+						answer = @cli.ask('Where would you like backups to be stored? Type "default" to use default.')
+						if not Dir.exist?(answer)
+							@cli.say('Error - This dirctory does not exist. Try again.') unless answer == 'default'
+						elsif not File.writable?(answer)
+							@cli.say('Error - This dirctory cannot be written to. Check permissions and try again.')
+						end
+					end
+					if answer == 'default'
+						config['backup_directory'] = "#{root}/sbcp/backups"
+						FileUtils.mkdir_p "#{root}/sbcp/backups" if not Dir.exist?("#{root}/sbcp/backups")
+					else
+						config['backup_directory'] = answer
+					end
+
+					@cli.newline
+					@cli.say('--- Backup Schedule ---')
+					answer = @cli.ask('How frequently would you like to take backups (in hours)? Type 0 for on restart.', Integer) { |q| q.in = [0, 1, 2, 3, 4, 6, 8, 12, 24] }
+					answer = 'restart' if answer == 0
+					answer = 'hourly' if answer == 1
+					answer = 'daily' if answer == 24
+					config['backup_schedule'] = answer
+
+					@cli.newline
+					@cli.say('--- Backup History ---')
+					answer = 0
+					until answer > 0
+						answer = @cli.ask('How long would like to keep the backups (in # of days)?', Integer)
+						@cli.say('Value must be greater than zero.') if not answer > 0
+					end
+					config['backup_history'] = answer
+				else
+					config['backup_history'] = 'none'
+				end
+				File.write(config_file, config.to_yaml) # Periodic save
+
+				# Log Settings
+				@cli.newline
+				@cli.say('--- Log Directory Location ---')
+				answer = ''
+				until Dir.exist?(answer) && File.writable?(answer) || answer == 'default'
+					answer = @cli.ask('Where would you like log files to be stored? Type "default" to use default.')
+					if not Dir.exist?(answer)
+						@cli.say('Error - This dirctory does not exist. Try again.') unless answer == 'default'
+					elsif not File.writable?(answer)
+						@cli.say('Error - This dirctory cannot be written to. Check permissions and try again.')
+					end
+				end
+				if answer == 'default'
+					config['log_directory'] = "#{root}/sbcp/logs"
+					FileUtils.mkdir_p "#{root}/sbcp/logs" if not Dir.exist?("#{root}/sbcp/logs")
+				else
+					config['log_directory'] = answer
+				end
+
+				@cli.newline
+				@cli.say('--- Log History ---')
+				answer = 0
+				until answer > 0
+					answer = @cli.ask('How long would you like log files to be kept (in days)?', Integer)
+					@cli.say('Value must be greater than zero.') if not answer > 0
+				end
+				config['log_history'] = answer
+
+				@cli.newline
+				@cli.say('--- Log Style ---')
+				@cli.say('There are two types of log styles available.')
+				@cli.say('Daily: One log file per day. Bigger files, but less of them.')
+				@cli.say('Restart: One log file per restart. Smaller files, but more of them.')
+				answer = @cli.ask("What kind of log style do you prefer?\n> ") { |q| q.in = ['daily', 'restart'] }
+				config['log_style'] = answer
+				File.write(config_file, config.to_yaml)
+
+				# Restart Settings
+				@cli.newline
+				@cli.say('--- Restart Schedule ---')
+				answer = @cli.ask('How frequently would you like the Starbound server to restart (in hours)? Type 0 to disable.', Integer) { |q| q.in = [0, 1, 2, 3, 4, 6, 8, 12, 24] }
+				answer = 'none' if response == 0
+				answer = 'hourly' if response == 1
+				answer = 'daily' if response == 24
+				config['restart_schedule'] = answer
+				File.write(config_file, config.to_yaml)
 			end
 
 			# Create the plugins directory and readme
@@ -376,8 +494,10 @@ def config_menu(menu)
 					@cli.say(config['backup_history'].to_s + ' days')
 					sub_menu.choice('Keep this setting') { @cli.say('Setting kept.'); config_menu(:backups) }
 					sub_menu.choice('Change this setting') do
-						response = @cli.ask("Enter a new value in days (enter 0 to disable backups)\n> ", Integer)
-						response = 'none' if response <= 0
+						until response > 0
+							response = @cli.ask("Enter a new value in days (enter 0 to disable backups)\n> ", Integer)
+							@cli.say('Value must be greater than zero.') if not response > 0
+						end
 						config['backup_history'] = response
 						File.write(config_file, config.to_yaml)
 						@cli.say('Changes saved successfully.')
@@ -442,8 +562,10 @@ def config_menu(menu)
 					@cli.say(config['log_history'].to_s + ' days')
 					sub_menu.choice('Keep this setting') { @cli.say('Setting kept.'); config_menu(:logs) }
 					sub_menu.choice('Change this setting') do
-						response = @cli.ask("Enter a new value in days\n> ", Integer)
-						response = 1 if not response >= 1 # Minimum value of 1 allowed
+						until response >= 1
+							response = @cli.ask("Enter a new value in days\n> ", Integer)
+							@cli.say('Value must be greater than or equal to one.') if not response >= 1
+						end
 						config['log_history'] = response
 						File.write(config_file, config.to_yaml)
 						@cli.say('Changes saved successfully.')
@@ -459,7 +581,7 @@ def config_menu(menu)
 					@cli.say(config['log_style'])
 					sub_menu.choice('Keep this setting') { @cli.say('Setting kept.'); config_menu(:logs) }
 					sub_menu.choice('Change this setting') do
-						response = @cli.ask("Enter a style name (daily, restart))\n> ", String) { |q| q.in = ['daily', 'restart'] }
+						response = @cli.ask("Enter a style name (daily, restart))\n> ") { |q| q.in = ['daily', 'restart'] }
 						config['log_style'] = response
 						File.write(config_file, config.to_yaml)
 						@cli.say('Changes saved successfully.')
@@ -481,7 +603,8 @@ def config_menu(menu)
 					config['restart_schedule'].is_a?(Integer) ? @cli.say('Every ' + config['restart_schedule'].to_s + ' hours') : @cli.say(config['restart_schedule'].to_s)
 					sub_menu.choice('Keep this setting') { @cli.say('Setting kept.'); config_menu(:restarts) }
 					sub_menu.choice('Change this setting') do
-						response = @cli.ask("Enter a new value in hours\n> ", Integer) { |q| q.in = [1, 2, 3, 4, 6, 8, 12, 24] }
+						response = @cli.ask("Enter a new value in hours\n> ", Integer) { |q| q.in = [0, 1, 2, 3, 4, 6, 8, 12, 24] }
+						response = 'none' if response == 0
 						response = 'hourly' if response == 1
 						response = 'daily' if response == 24
 						config['restart_schedule'] = response
