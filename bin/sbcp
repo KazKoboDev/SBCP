@@ -282,7 +282,7 @@ o = OptionParser.new do |opts|
 					end
 					@cli.say("Starbound installation directory set to \"#{config['starbound_directory']}\"")
 				else
-					r = result.first.split("/")[0..3].join("/") 
+					r = result.first.split("/giraffe_storage").first
 					@cli.say('SBCP successfully located the Starbound installation directory at:')
 					@cli.say("\"#{r}\"")
 					abort('Error - This directory cannot be written to. Check permissions and try again.') if not File.writable?(r)
