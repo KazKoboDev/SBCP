@@ -5,5 +5,5 @@ backup_history: 90
 backup_schedule: 4
 log_directory: "/home/ubuntu/Starbound/sbcp/logs"
 log_history: 9
-log_style: daily
+log_style: restart
 restart_schedule: 4

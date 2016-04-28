@@ -65,9 +65,10 @@ module SBCP
 				# This normally occurs after a shutdown, crash, or restart.
 				# The daemon process will do nothing until the server closes.
 
-				# Once the server has finished running, we'll want to rotate our logfiles.
+				# Once the server has finished running, we'll want to age our logfiles.
 				# We'll also take backups here if they've been set to behave that way.
-				#SBCP::Logs.rotate if config['log_style'] == 'restart'
+				# There's probably a better way than sending config values as arguements, but...
+				SBCP::Logs.age(config['log_directory'], config['log_history']) if config['log_style'] == 'restart'
 				SBCP::Backup.create_backup if config['backup_schedule'] == 'restart'
 
 				# Now we must determine if the server was closed intentionally.
@@ -75,6 +76,9 @@ module SBCP
 				# If the shutdown file exists, it was an intentional shutdown.
 				# We break the loop which ends the method and closes the Daemon process.
 				break if not Dir.glob('/tmp/sb-shutdown*').empty?
+
+				# This delay is needed or some commands don't report back correctly
+				sleep 5
 			end
 		ensure
 			unless pid_file.nil?

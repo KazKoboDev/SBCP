@@ -16,9 +16,9 @@ o = OptionParser.new do |opts|
 		mode = 'CLI' if mode == nil
 		case mode.upcase
 		when 'CLI'
+			@cli.say('The control panel has been started in CLI mode.')
 			require_relative '../lib/sbcp/daemon'
 			SBCP::Daemon.run
-			@cli.say('The control panel has been started in CLI mode.')
 		when 'GUI'
 			abort('Currently unsupported.')
 			#require '../lib/sbcp'
