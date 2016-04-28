@@ -89,5 +89,5 @@ Although bear with me, I haven't used GitHub much before so I'll need to read up
 
 ## License
 
-The gem is available as open source under the terms of the [MIT License](http://opensource.org/licenses/MIT).
+The gem is available as open source under the terms of the [GNU AGPLv3 License](https://opensource.org/licenses/AGPL-3.0).
 
