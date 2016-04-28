@@ -81,7 +81,9 @@ SBCP isn't anywhere near complete. I have some additional features planned:
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/Kazyyk/SBCP.
+Bug reports and pull requests are welcome.
+
+Although bear with me, I haven't used GitHub much before so I'll need to read up on pull requests.
 
 
 ## License
