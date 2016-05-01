@@ -33,6 +33,7 @@ o = OptionParser.new do |opts|
 		case mode.upcase
 		when 'CLI'
 			@cli.say('The control panel has been started in CLI mode.')
+			@cli.say('The Starbound server has also been started.')
 			require_relative '../lib/sbcp/daemon'
 			SBCP::Daemon.run
 		when 'GUI'
@@ -316,7 +317,12 @@ o = OptionParser.new do |opts|
 				FileUtils.mkdir "#{root}/sbcp/backups" if not Dir.exist?("#{root}/sbcp/backups")
 				FileUtils.mkdir "#{root}/sbcp/logs" if not Dir.exist?("#{root}/sbcp/logs")
 				config['backup_directory'] = "#{root}/sbcp/backups"
+				config['backup_history'] = 90
+				config['backup_schedule'] = "hourly"
 				config['log_directory'] = "#{root}/sbcp/logs"
+				config['log_history'] = 90
+				config['log_style'] = "daily"
+				config['restart_schedule'] = 4
 			else
 				# Backup Settings
 				@cli.newline

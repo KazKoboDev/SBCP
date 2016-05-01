@@ -43,6 +43,7 @@ module SBCP
 			pid_file = Tempfile.new('sbcp_daemon-pid')
 			pid = Process.pid.to_s
 			pid_file.write(pid)
+			pid_file.close
 
 			# Next, we perform a check to ensure that the server isn't already running.
 			abort('Starbound is already running.') if not `pidof starbound_server`.empty?
@@ -99,7 +100,6 @@ module SBCP
 			end
 		ensure
 			unless pid_file.nil?
-				pid_file.close
 				pid_file.unlink
 			end
 		end
