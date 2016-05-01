@@ -79,7 +79,7 @@ SBCP isn't anywhere near complete. I have some additional features planned:
 * Better Plugin Support
 * Ban/Kick/Unban commands
 * Server announcements (including restart announcements)
-* More that I can't think of right now, I'm sure
+* Write tests
 
 ## Contributing
 
