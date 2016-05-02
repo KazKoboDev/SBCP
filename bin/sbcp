@@ -32,8 +32,6 @@ o = OptionParser.new do |opts|
 		mode = 'CLI' if mode == nil
 		case mode.upcase
 		when 'CLI'
-			@cli.say('The control panel has been started in CLI mode.')
-			@cli.say('The Starbound server has also been started.')
 			require_relative '../lib/sbcp/daemon'
 			SBCP::Daemon.run
 		when 'GUI'
@@ -162,25 +160,72 @@ o = OptionParser.new do |opts|
 	end
 
 	# Allows an admin to kick a player.
-	# UUIDs can be spoofed and names can be changed, so IP is the most reliable. (Although, proxies can bypass this.)
 	# There will be support for Steam IDs if/when Starbound supports them.
 
-	opts.on('-k', '--kick TYPE', [:uuid, :name, :ip], 'Kicks a specified player by either UUID, Name, or IP') do |type|
-		@cli.say('This feature will be added later.')
+	opts.on('-k', '--kick PLAYER', 'Kicks a specified player by either Account, Name, or IP') do |player|
+		rcon = RCON.new
+		require 'resolv'
+		case player
+		when Resolv::IPv4::Regex # IPv4
+		when Resolv::IPv6::Regex # IPv6
+		else # Account or Name
+			@cli.choose do |menu|
+				@cli.say("Is this an account or character?")
+				menu.prompt = "Please select an option\n> "
+				menu.choice("Account") do
+
+				end
+				menu.choice("Character") do
+
+				end
+			end
+		end
 	end
 
 	# Same as the kick command, except for a specified time period or permanently.
 	# Can be reverse with the unban command.
 
-	opts.on('-b', '--ban TYPE', [:uuid, :name, :ip], 'Bans a specified player by either UUID, Name, or IP') do |type|
-		@cli.say('This feature will be added later.')
+	opts.on('-b', '--ban TYPE', [:uuid, :name, :ip], 'Bans a specified player by either Account, Name, or IP') do |type|
+		rcon = RCON.new
+		require 'resolv'
+		case player
+		when Resolv::IPv4::Regex # IPv4
+		when Resolv::IPv6::Regex # IPv6
+		else # Account or Name
+			@cli.choose do |menu|
+				@cli.say("Is this an account or character?")
+				menu.prompt = "Please select an option\n> "
+				menu.choice("Account") do
+
+				end
+				menu.choice("Character") do
+
+				end
+			end
+		end
 	end
 
 	# Removes a previously assigned ban on a player based on criteria.
 	# It will return an error if the specified critera doesn't exist.
 
-	opts.on('-u', '--unban TYPE', [:uuid, :name, :ip], 'Unbans a specified player by either UUID, Name, or IP') do |type|
-		@cli.say('This feature will be added later.')
+	opts.on('-u', '--unban TYPE', [:uuid, :name, :ip], 'Unbans a specified player by either Account, Name, or IP') do |type|
+		rcon = RCON.new
+		require 'resolv'
+		case player
+		when Resolv::IPv4::Regex # IPv4
+		when Resolv::IPv6::Regex # IPv6
+		else # Account or Name
+			@cli.choose do |menu|
+				@cli.say("Is this an account or character?")
+				menu.prompt = "Please select an option\n> "
+				menu.choice("Account") do
+
+				end
+				menu.choice("Character") do
+
+				end
+			end
+		end
 	end
 
 	# Allows an admin to easily grab the most recent information.
@@ -264,7 +309,7 @@ o = OptionParser.new do |opts|
 
 	opts.on_tail('-S', '--setup', 'Performs first time setup') do
 		require_relative '../lib/sbcp/setup.rb'
-		run_setup
+		SBCP::Setup.run_setup
 	end
 
 	# Displays help.
@@ -275,11 +320,31 @@ o = OptionParser.new do |opts|
 	end
 end
 
-def ignore_exception
-   begin
-     yield  
-   rescue Exception
-  end
+class RCON
+	def initialize
+		require 'json'
+		config = YAML.load_file(File.expand_path('../../config.yml', __FILE__))
+		sb_config_raw = File.read("#{config['starbound_directory']}/giraffe_storage/starbound.config")
+		sb_config_parsed = JSON.parse(sb_config_raw)
+		if sb_config_parsed["runRconServer"] == true
+			require 'steam-condenser'
+			@rcon = SourceServer.new("127.0.0.1:#{sb_config_parsed["rconServerPort"]}")
+			@rcon.rcon_auth(sb_config_parsed["rconServerPassword"])
+		else
+			abort("RCON is not enabled. Please check your starbound.config file.")
+		end
+	rescue SteamCondenser::TimeoutError => e
+		abort(e)
+	end
+
+	def execute(command)
+		# We swallow the time out exception here because Steam Condenser expects a reply
+		# Starbound doesn't seem to always give a reply, even though the commands work
+		begin
+			@rcon.rcon_exec(command)
+		rescue Exception
+		end
+	end
 end
 
 ARGV << '-h' if ARGV.empty? # Displays help if no arguements given.

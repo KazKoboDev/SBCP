@@ -64,6 +64,10 @@ module SBCP
 			abort('Error - Invalid log style') if not ['daily', 'restart'].include? config['log_style']
 			abort('Error - Invalid restart schedule') if not ['none', 'hourly', 2, 3, 4, 6, 8, 12, 'daily'].include? config['restart_schedule']
 
+			# Print something so the user knows it's working
+			puts 'The control panel has been started in CLI mode.'
+			puts 'The Starbound server will also be started.'
+
 			# Require any present plugins
 			plugins_directory = "#{config['starbound_directory']}/sbcp/plugins"
 			$LOAD_PATH.unshift(plugins_directory)
