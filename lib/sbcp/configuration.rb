@@ -205,13 +205,11 @@ module SBCP
 							sub_menu.prompt = "Please select a menu option\n> "
 							@cli.say("=== SBCP Restart Schedule Setting ===")
 							@cli.say('The restart schedule is currently set to:')
-							config['restart_schedule'].is_a?(Integer) ? @cli.say('Every ' + config['restart_schedule'].to_s + ' hours') : @cli.say(config['restart_schedule'].to_s)
+							config['restart_schedule'].is_a?(Integer) ? @cli.say('Every ' + config['restart_schedule'].to_s + ' hours') : @cli.say(config['restart_schedule'].to_s.capitalize)
 							sub_menu.choice('Keep this setting') { @cli.say('Setting kept.'); config_menu(:restarts) }
 							sub_menu.choice('Change this setting') do
 								response = @cli.ask("Enter a new value in hours\n> ", Integer) { |q| q.in = [0, 1, 2, 3, 4, 6, 8, 12, 24] }
-								response = 'none' if response == 0
-								response = 'hourly' if response == 1
-								response = 'daily' if response == 24
+								response = 'disabled' if response == 0
 								config['restart_schedule'] = response
 								File.write(config_file, config.to_yaml)
 								@cli.say('Changes saved successfully.')

@@ -27,7 +27,6 @@ module SBCP
 
 		def initialize
 			@config = YAML.load_file(File.expand_path('../../../config.yml', __FILE__))
-			@shutdown = false
 		end
 
 		def start
@@ -67,15 +66,14 @@ module SBCP
 				# If the server was shut down on purpose, we don't want to automatically restart it.
 				# If the shutdown file exists, it was an intentional shutdown.
 				# We break the loop which ends the method and closes the Daemon process.
-				break if @shutdown == true
+				if not Dir.glob('/tmp/sb-shutdown*').empty?
+					$daemon = nil
+					break
+				end
 
 				# This delay is needed or some commands don't report back correctly
 				sleep 5
 			end
-		end
-
-		def stop
-			@shutdown = true
 		end
 
 		private

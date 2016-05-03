@@ -16,16 +16,24 @@
 
 require 'highline/import'
 require 'celluloid/current'
+require 'time_diff'
+require 'tempfile'
+require 'yaml'
 require 'pry'
+
+require_relative 'sbcp/backup'
+require_relative 'sbcp/daemon'
 
 module SBCP
 	class SBCP
 		def initialize
-			@commands = ['backup', 'detach', 'exit', 'kill', 'quit', 'reboot', 'restart', 'start', 'stop', 'help']
+			@config = YAML.load_file(File.expand_path('../../config.yml', __FILE__))
+			@commands = ['backup', 'detach', 'exit', 'get', 'kill', 'quit', 'reboot', 'restart', 'start', 'stop', 'help']
 			@commands_scheme = [
 				"<%= color('backup', :command) %>",
 				"<%= color('detach', :command) %>",
 				"<%= color('exit', :command) %>",
+				"<%= color('get', :command) %>",
 				"<%= color('kill', :command) %>",
 				"<%= color('quit', :command) %>",
 				"<%= color('reboot', :command) %>",
@@ -41,12 +49,14 @@ module SBCP
 				cs[:warning] = 		[ :red, :on_black ]
 				cs[:failure] =		[ :bold, :red, :on_black ]
 				cs[:success] =		[ :bold, :green, :on_black]
+				cs[:info] =			[ :bold, :blue, :on_black ]
 				cs[:help] =			[ :magenta, :on_black ]
 			end
 			HighLine.color_scheme = scheme
 		end
 
 		def repl
+			system('clear')
 			say("<%= color(' .d8888b.  888888b.    .d8888b.  8888888b.', :headline) %>")
 			say("<%= color('d88P  Y88b 888  \"88b  d88P  Y88b 888   Y88b', :headline) %>")
 			say("<%= color('Y88b.      888  .88P  888    888 888    888', :headline) %>")
@@ -67,10 +77,17 @@ module SBCP
 			loop do
 				input = ask('> ')
 				case input
-				when /^backup\s?(starbound|sbcp|full)?$/ # eg. backup starbound; backup sbcp; backup full
-					type = input.split("backup")
-					type = type.empty? ? nil : type.last.strip
-					backup(type)
+				when /^(backup|backup\s?(\S+))$/
+					backup($2)
+				when 'exit', 'quit'
+					say("<%= color('!!! This action could result in data loss !!!', :warning) %>")
+					say("<%= color('!!! Starbound shall be stopped if running !!!', :warning) %>")
+					if agree("Are you sure? ", true)
+						stop('SIGKILL') unless `pidof starbound_server`.empty?
+						exit
+					end
+				when /^(get|get\s?(\S+))$/
+					get($2)
 				when 'kill'
 					say("<%= color('!!! This action could result in data loss !!!', :warning) %>")
 					if agree("Are you sure? ", true)
@@ -87,7 +104,7 @@ module SBCP
 					end
 				when 'start'
 					if `pidof starbound_server`.empty?
-						if @daemon.nil?
+						if $daemon.nil?
 							start
 						else
 							say("<%= color('Duplicate prevented.', :warning) %> The daemon is still processing. Please wait and try again.")
@@ -99,34 +116,74 @@ module SBCP
 					if agree("Are you sure? ", true)
 						stop
 					end
-				when 'detach', 'quit', 'exit'
+				when 'detach'
 					system('screen -d')
 				when /^(help|help\s?(\S+))$/
-					command = input.split("help")
-					if not command.empty?
-						if @commands.include? command.last.strip
+					command = $2
+					if not command.nil?
+						if @commands.include? command.strip
 							help(command)
 						else
-							say("The command \"#{command.last.strip}\" does not exist.")
+							say("The command \"#{command.strip}\" does not exist.")
 						end
 					else
 						help
 					end
+				when 'debug'
+					pry
+				else
+					say('Invalid command. Try help for a list of possible commands.')
 				end
 			end
-		rescue => e
-			puts e
-			sleep
 		ensure
-			@daemon.terminate unless @daemon.nil?
+			$daemon.terminate unless $daemon.nil?
 		end
 
 		def backup(type=nil)
 			if not type.nil?
-				require_relative 'sbcp/backup'
-				Backup.create_backup(type)
+				case type
+				when 'starbound', 'sbcp', 'full'
+					Backup.create_backup(type)
+				else
+					say("Backup type \"#{type}\" is not valid.")
+				end
 			else
-				say("Please specify a backup type.")
+				say('Please specify a backup type.')
+			end
+		end
+
+		def get(data=nil)
+			if not data.nil?
+				case data
+				when 'bans'
+
+				when 'info'
+					unless Starbound::SESSION.nil? || Starbound::SESSION.empty?
+						Starbound::SESSION[:info][:uptime] = Time.diff(Starbound::SESSION[:info][:started], Time.now, '%H %N %S')[:diff]
+						unless Starbound::SESSION[:info][:restart_in] == 'Never'
+							Starbound::SESSION[:info][:restart_in] = "#{(((@config['restart_schedule']*60*60) - (Time.now - Starbound::SESSION[:info][:started]))/60).to_i} minutes" # Inaccurate for first start, fairly acurrate thereafter
+						end
+						Starbound::SESSION[:info].each_pair do |key, value|
+							say("<%= color('#{key.to_s.capitalize}:', :info) %> #{value}")
+						end
+					else
+						say("<%= color('Error!', :failure) %> Session data is missing or empty.")
+					end
+				when 'players'
+					unless Starbound::SESSION.nil? || Starbound::SESSION.empty?
+						Starbound::SESSION[:players].each_value do |player|
+							player.each_pair do |key, value|
+								say("<%= color('#{key}', :info) %> #{value}")
+							end
+						end
+					else
+						say("<%= color('Error!', :failure) %> Session data is missing or empty.")
+					end
+				else
+					say("Data type \"#{data}\" is not valid.")
+				end
+			else
+				say('Please specify a data type.')
 			end
 		end
 
@@ -136,18 +193,22 @@ module SBCP
 		end
 
 		def start
-			require_relative 'sbcp/daemon'
 			say('Starting the Starbound server...')
 			supervisor = Daemon.supervise
-			@daemon = supervisor.actors.first
-			@daemon.async.start
+			$daemon = supervisor.actors.first
+			$daemon.async.start
 			say("<%= color('Operation complete.', :success) %>")
 		end
 
 		def stop(signal='SIGTERM')
 			say('Sending stop request...')
-			# USE TEMPFILE TO TRACK PERMA KILLS, VARIABLES WON'T WORK
+			file = Tempfile.new('sb-shutdown')
 			kill(signal)
+		ensure
+			unless file.nil?
+				file.close
+				file.unlink
+			end
 		end
 
 		def kill(signal='SIGTERM')
@@ -165,7 +226,7 @@ module SBCP
 				end
 				return say("<%= color('Operation complete.', :success) %>")
 			end
-			say("<%= color('Aborting stop request. See details below.', :failure) %>")
+			say("<%= color('Aborting request. See details below.', :failure) %>")
 			return say('Unable to locate the starbound_server process. Is it running?')
 		end
 
@@ -173,6 +234,8 @@ module SBCP
 			if not command.nil?
 				case command
 				when 'backup'
+				else
+					say("Could not find help for \"#{command}\" command.")
 				end
 			else
 				say("<%= color('Command list. Type help [command] to learn more.', :help) %>")

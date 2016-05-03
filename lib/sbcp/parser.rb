@@ -15,14 +15,65 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 require 'celluloid/current'
+require 'yaml'
+
+require_relative 'rcon'
 
 module SBCP
 	class Parser
 		include Celluloid
 
+		def initialize
+			Starbound::SESSION[:players] = {} if not Starbound::SESSION[:players].empty?
+			@config = YAML.load_file(File.expand_path('../../../config.yml', __FILE__))
+			@tmp = {}
+		end
+
 		def parse(line)
-			# This method will eventually be responsible for parsing server output and running other methods based on that output.
-			# One example would be to emulate in-game server commands.
+			if line.include? "Chat:"
+				process_chat(line)
+			else
+				case line
+				when /Starting UniverseServer with UUID:/
+					@rcon = RCON.new
+				when /Logged in account '(.+)' as player '(.+)' from address (.+)/
+					id = Starbound::SESSION[:players].count + 1
+					@tmp[id] = {
+						:account => $1,
+						:name => $2,
+						:ip => $3
+					}
+				when /Client '(.+)' <(\d+)> \((.+)\) connected/
+					if get_id_from_name($1)
+						@rcon.execute("kick $#{$2} \"#{@config['duplicate_kick_msg']}\"")
+						id = get_tempid_from_name($1)
+						@tmp.delete(id)
+					elsif id = get_tempid_from_name($1)
+						Starbound::SESSION[:players][$2] = @tmp[id]
+						@tmp.delete(id)
+					end
+				when /Client '(.+)' <(\d+)> \((.+)\) disconnected/
+					Starbound::SESSION[:players].delete($2) unless Starbound::SESSION[:players][$2].nil?
+				end
+			end
+		end
+
+		def process_chat(line)
+			# TODO
+		end
+
+		def get_tempid_from_name(name)
+			@tmp.each_pair { |k,v|
+				return k if v[:name] == name
+			}
+			return nil
+		end
+
+		def get_id_from_name(name)
+			Starbound::SESSION[:players].each_pair { |k,v|
+				return k if v[:name] == name
+			}
+			return nil
 		end
 	end
 end

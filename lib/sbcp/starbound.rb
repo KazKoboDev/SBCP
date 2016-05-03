@@ -18,12 +18,24 @@ require 'yaml'
 require 'logger'
 require 'rufus-scheduler'
 require 'celluloid/current'
+
 require_relative 'parser'
 
 module SBCP
 	class Starbound
+		include Celluloid
+
+		SESSION = {}
+		
 		def initialize
 			@config = YAML.load_file(File.expand_path('../../../config.yml', __FILE__))
+			SESSION[:info] = {
+				:started	=> nil,
+				:uptime		=> nil,
+				:restart_in	=> nil,
+			}
+			SESSION[:players] = {}
+			SESSION[:info][:restart_in] = 'Never' if @config['restart_schedule'] == 'disabled'
 			backup_schedule = @config['backup_schedule']
 			restart_schedule = @config['restart_schedule']
 			scheduler = Rufus::Scheduler.new
@@ -72,13 +84,14 @@ module SBCP
 			log.formatter = proc { |severity, datetime, progname, msg| date_format = datetime.strftime("%H:%M:%S.%N")[0...-6]; "[#{date_format}] #{msg}" }
 			log.level = Logger::INFO
 			log.info("---------- SBCP is starting a new Starbound instance ----------\n")
-			#parser = SBCP::Parser.new
+			parser = Parser.new
+
+			SESSION[:info][:started] = Time.now
 
 			IO.popen("#{@config['starbound_directory']}/linux64/starbound_server", :chdir=>"#{@config['starbound_directory']}/linux64", :err=>[:child, :out]) do |output|
 				while line = output.gets
 					log.info(line)
-					puts line
-					#parser.async.parse(line)
+					parser.async.parse(line)
 				end
 			end
 
@@ -86,7 +99,7 @@ module SBCP
 			log.info("---------- Starbound has successfully shut down ----------\n")
 			log.info("\n") # Adds a newline space at the end of the log. Helpful for separating restarts in daily logs.
 			log.close
-			#parser.terminate
+			parser.terminate
 		end
 	end
 end

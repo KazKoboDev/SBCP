@@ -60,7 +60,7 @@ module SBCP
 					end
 				end
 			when 'sbcp'
-				abort("Unimplemented.")
+				puts "Unimplemented."
 			when 'full'
 				# This should take a complete backup of Starbound and SBCP.
 				# Currently only supports Starbound.
