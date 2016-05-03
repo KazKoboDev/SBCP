@@ -17,338 +17,70 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 require 'optparse'
-require 'highline'
-require_relative '../lib/sbcp/version'
 
 o = OptionParser.new do |opts|
 	opts.banner = 'Usage: sbcp [options]'
-
-	# This starts SBCP and creates the underlying daemon process.
-	# The daemon process is responsible for maintaining the server.
-	# There are two modes, Command Line Interface and Graphical User Interface.
-	# CLI mode disables the web server to improve performance.
-
 	opts.on('-s', '--start [MODE]', 'Starts SBCP in either CLI or GUI mode (Default: CLI)') do |mode|
-		mode = 'CLI' if mode == nil
+		mode = 'CLI' if mode == nil # Sets default behavior to CLI mode
 		case mode.upcase
 		when 'CLI'
 			require_relative '../lib/sbcp/daemon'
 			SBCP::Daemon.run
 		when 'GUI'
-			abort('Currently unsupported.')
-			#require '../lib/sbcp'
-			#SBCP::Panel.run!
-			#puts "The control panel has been started in GUI mode."
-			#puts "Access the GUI at <ipaddress>:4567 in your web browser."
-		else
-			@cli.say('Please provide either CLI or GUI as an arguement.')
+			puts 'GUI mode is not yet implemented.'
 		end
 	end
-
-	# Attempts to gracefully stop the server without fully shutting it down.
-	# This may not always be successful, as Starbound is sometimes unreceptive to kill signals.
-
 	opts.on('-r', '--restart', 'Gracefully restarts the Starbound server') do
-		if @cli.agree('This will attempt to gracefully restart the server. Are you sure? (y/n)') then
-			@cli.say('Attempting to gracefully restart the server...')
-			pid = `pidof starbound_server`
-			if not pid.empty?
-				system("kill -15 #{pid.to_i}")
-				time = Time.now
-				diff = 0
-				until `pidof starbound_server`.empty? || diff >= 5
-					sleep 1
-					diff = Time.now - time
-				end
-				abort('Unable to stop the server for restart. Reboot command may be required.') if not `pidof starbound_server`.empty?
-				@cli.say('The Starbound server has been successfully stopped and will restart automatically.')
-			else
-				abort('Unable to locate the Starbound server process ID. Is it running?')
-			end
-		else
-			@cli.say('Graceful restart aborted.')
-		end
+		# TODO
 	end
-
-	# This kills the server process almost immediately.
-	# This just stops it cold in it's tracks, so it's possible to lose information stored in memory.
-
 	opts.on('-R', '--reboot', 'Forcibly restarts the Starbound server') do
-		if @cli.agree('This will forcibly restart the server. Some data may be lost as a result. Are you sure? (y/n)') then
-			@cli.say('Attempting to forcefully reboot the server...')
-			pid = `pidof starbound_server`
-			if not pid.empty?
-				system("kill -9 #{pid.to_i}")
-				time = Time.now
-				diff = 0
-				until `pidof starbound_server`.empty? || diff >= 5
-					sleep 1
-					diff = Time.now - time
-				end
-				abort('Unable to forcefully reboot the server. Try again?') if not `pidof starbound_server`.empty?
-				@cli.say('The Starbound server has been successfully stopped and will restart automatically.')
-			else
-				abort('Unable to locate the Starbound server process ID. Is it running?')
-			end
-		else
-			@cli.say('Force restart aborted.')
-		end
+		# TODO
 	end
-
-	# Same as the graceful restart option, only the server doesn't come back automatically.
-	# We create a temporary file to indicate that we don't want the server to restart.
-	# The temporary file is removed when we call file.unlink
-
 	opts.on('-g', '--grace', 'Gracefully stops the Starbound server') do
-		if @cli.agree('This will attempt to gracefully stop the server. Are you sure? (y/n)') then
-			require 'tempfile'
-			@cli.say('Attempting to gracefully stop the Starbound server...')
-			begin
-				file = Tempfile.new('sb-shutdown')
-				pid = `pidof starbound_server`
-				if not pid.empty?
-					system("kill -15 #{pid.to_i}")
-					time = Time.now
-					diff = 0
-					until `pidof starbound_server`.empty? || diff >= 5
-						sleep 1
-						diff = Time.now - time
-					end
-					abort('Unable to gracefully stop the server. Force may be neccesary.') if not `pidof starbound_server`.empty?
-					@cli.say('The Starbound server has been successfully stopped.')
-				else
-					abort('Unable to locate the Starbound server process ID. Is it running?')
-				end
-			ensure
-				file.close
-				file.unlink
-			end
-		else
-			@cli.say('Server shutdown aborted.')
-		end
+		# TODO
 	end
-
-	# Same as the force restart option, without the server coming back automatically.
-
 	opts.on('-K', '--kill', 'Forcibly stops the Starbound server') do
-		 if @cli.agree('This will forcibly stop the server. Some data may be lost as a result. Are you sure? (y/n)') then
-			require 'tempfile'
-			@cli.say('Attempting to forcefully stop the Starbound server...')
-			begin
-				file = Tempfile.new('sb-shutdown')
-				pid = `pidof starbound_server`
-				if not pid.empty?
-					system("kill -9 #{pid.to_i}")
-					time = Time.now
-					diff = 0
-					until `pidof starbound_server`.empty? || diff >= 5
-						sleep 1
-						diff = Time.now - time
-					end
-					abort('Unable to forcefully stop the server. Try again?') if not `pidof starbound_server`.empty?
-					@cli.say('The Starbound server has been successfully stopped.')
-				else
-					abort('Unable to locate the Starbound server process ID. Is it running?')
-				end
-			ensure
-				file.close
-				file.unlink
-			end
-		else
-			@cli.say('Force stop aborted.')
-		end
+		# TODO
 	end
-
-	# Allows an admin to kick a player.
-	# There will be support for Steam IDs if/when Starbound supports them.
-
-	opts.on('-k', '--kick PLAYER', 'Kicks a specified player by either Account, Name, or IP') do |player|
-		rcon = RCON.new
-		require 'resolv'
-		case player
-		when Resolv::IPv4::Regex # IPv4
-		when Resolv::IPv6::Regex # IPv6
-		else # Account or Name
-			@cli.choose do |menu|
-				@cli.say("Is this an account or character?")
-				menu.prompt = "Please select an option\n> "
-				menu.choice("Account") do
-
-				end
-				menu.choice("Character") do
-
-				end
-			end
-		end
+	opts.on('-k', '--kick PLAYER', 'Kicks a specified player by [Account, Name, IP]') do |player|
+		# TODO
 	end
-
-	# Same as the kick command, except for a specified time period or permanently.
-	# Can be reverse with the unban command.
-
-	opts.on('-b', '--ban TYPE', [:uuid, :name, :ip], 'Bans a specified player by either Account, Name, or IP') do |type|
-		rcon = RCON.new
-		require 'resolv'
-		case player
-		when Resolv::IPv4::Regex # IPv4
-		when Resolv::IPv6::Regex # IPv6
-		else # Account or Name
-			@cli.choose do |menu|
-				@cli.say("Is this an account or character?")
-				menu.prompt = "Please select an option\n> "
-				menu.choice("Account") do
-
-				end
-				menu.choice("Character") do
-
-				end
-			end
-		end
+	opts.on('-b', '--ban PLAYER', 'Bans a specified player by [Account, Name, IP]') do |player|
+		# TODO
 	end
-
-	# Removes a previously assigned ban on a player based on criteria.
-	# It will return an error if the specified critera doesn't exist.
-
-	opts.on('-u', '--unban TYPE', [:uuid, :name, :ip], 'Unbans a specified player by either Account, Name, or IP') do |type|
-		rcon = RCON.new
-		require 'resolv'
-		case player
-		when Resolv::IPv4::Regex # IPv4
-		when Resolv::IPv6::Regex # IPv6
-		else # Account or Name
-			@cli.choose do |menu|
-				@cli.say("Is this an account or character?")
-				menu.prompt = "Please select an option\n> "
-				menu.choice("Account") do
-
-				end
-				menu.choice("Character") do
-
-				end
-			end
-		end
+	opts.on('-u', '--unban PLAYER', 'Unbans a specified player by [Account, Name, IP]') do |player|
+		# TODO
 	end
-
-	# Allows an admin to easily grab the most recent information.
-	# Supports up to the last 100 lines.
-
-	opts.on('-l', '--list TYPE', [:bans, :connections, :logs], 'Lists the last X lines of the specified data type. (bans, connections, or logs)') do |type|
-		@cli.say('This feature will be added later.')
+	opts.on('-l', '--list TYPE', [:bans, :connections, :logs], 'Lists the last 50 lines of [bans, connections, logs].') do |type|
+		# TODO
 	end
-
-	# This command creates a full backup of all Starbound and SBCP data.
-	# This includes: Starbound world files, logs files, and the SBCP database.
-
-	opts.on('-B', '--backup TYPE', [:starbound, :sbcp, :full],'Creates a backup of the specified data. (starbound, sbcp, or full)') do |type|
-		if @cli.agree("Are you sure? This will start the backup process.\nIf the Starbound server is running, it may experience brief sluggishness.") then
-			require_relative '../lib/sbcp/backup'
-			SBCP::Backup.create_backup(type)
-			@cli.say('Backup has completed successfully.')
-		else
-			@cli.say('Backup aborted.')
-		end
+	opts.on('-B', '--backup TYPE', [:starbound, :sbcp, :full],'Creates a [starbound, sbcp, full] backup.') do |type|
+		require_relative '../lib/sbcp/backup'
+		puts "Initiating #{type.upcase} backup..."
+		SBCP::Backup.create_backup(type)
+		puts 'Backup has completed successfully.'
 	end
-
-	# Stops the SBCP process as gently as possible.
-	# It won't work if Starbound is running, so stop the Starbound server first.
-
 	opts.on('-e', '--exit', 'Gracefully stops SBCP') do
-		@cli.say("This feature is only used in GUI mode. GUI mode is not yet implemented.")
-		@cli.say("In CLI mode, stopping Starbound will automatically stop SBCP.")
+		# TODO
 	end
-
-	# Kills both SBCP and the Starbound server, if running.
-	# This command needs work. It doesn't always work properly.
-	# Usually, the starbound process has to be killed first.
-	# After that, SBCP usually closes on it's own... making this command moot.
-
 	opts.on('-a', '--abort', 'Forcibly stops SBCP') do
-		if @cli.agree('This will attempt to forcibly stop the control panel. Some data may be lost as a result. Are you sure? (y/n)') then
-			pid = `pidof starbound_server`
-			if not pid.empty?
-				system("kill -9 #{pid.to_i}")
-				time = Time.now
-				diff = 0
-				until `pidof starbound_server`.empty? || diff >= 5
-					sleep 1
-					diff = Time.now - time
-				end
-				abort('Unable to forcfully close Starbound. Try closing it separately?') if not `pidof starbound_server`.empty?
-			end
-			if not Dir.glob('/tmp/sbcp_daemon-pid*').empty?
-				pid_file = Dir.glob('/tmp/sbcp_daemon-pid*').first
-				pid = File.read(pid_file)
-				system("kill -9 #{pid.to_i}")
-				time = Time.now
-				diff = 0
-				until `ps -p #{pid.to_i} -o comm=`.empty? || diff >= 5
-					sleep 1
-					diff = Time.now - time
-				end
-				abort('Unable to forcefully stop the control panel. Try again?') if not `ps -p #{pid.to_i} -o comm=`.empty?
-				@cli.say('The control panel has been successfully stopped.')
-			else
-				@cli.say('Unable to locate the control panel process ID. Is it running?')
-			end
-		else
-			puts 'The control panel was not aborted.'
-		end
+		# TODO
 	end
-
-	# Opens the config menu.
-	# What else is there to say?
-
-	opts.on_tail('-c', '--config', 'Opens the config menu') do
-		require_relative '../lib/sbcp/config.rb'
-		#@cli.say('NOTICE: SBCP must be restarted for any changes to take effect. (GUI mode only)')
-		@cli.say('NOTICE: Starbound must be restarted for any changes to take effect.')
-		config_menu(:main)
+	opts.on_tail('-c', '--config', 'Opens the interactive configuration menu') do
+		require_relative '../lib/sbcp/configuration'
+		SBCP::Configuration.menu(:main)
 	end
-
-	# This sets SBCP up for proper usage.
-	# Ideally, only run once.
-
-	opts.on_tail('-S', '--setup', 'Performs first time setup') do
-		require_relative '../lib/sbcp/setup.rb'
-		SBCP::Setup.run_setup
+	opts.on_tail('-h', '--help', 'Opens the interactive documentation menu') do
+		require_relative '../lib/sbcp/help'
+		SBCP::Help.menu(:main)
 	end
-
-	# Displays help.
-
-	opts.on_tail('-h', '--help', 'Show this message') do
-		puts opts
-		exit
-	end
-end
-
-class RCON
-	def initialize
-		require 'json'
-		config = YAML.load_file(File.expand_path('../../config.yml', __FILE__))
-		sb_config_raw = File.read("#{config['starbound_directory']}/giraffe_storage/starbound.config")
-		sb_config_parsed = JSON.parse(sb_config_raw)
-		if sb_config_parsed["runRconServer"] == true
-			require 'steam-condenser'
-			@rcon = SourceServer.new("127.0.0.1:#{sb_config_parsed["rconServerPort"]}")
-			@rcon.rcon_auth(sb_config_parsed["rconServerPassword"])
-		else
-			abort("RCON is not enabled. Please check your starbound.config file.")
-		end
-	rescue SteamCondenser::TimeoutError => e
-		abort(e)
-	end
-
-	def execute(command)
-		# We swallow the time out exception here because Steam Condenser expects a reply
-		# Starbound doesn't seem to always give a reply, even though the commands work
-		begin
-			@rcon.rcon_exec(command)
-		rescue Exception
-		end
+	opts.on_tail('-v', '--version', 'Displays the current SBCP version') do
+		require_relative '../lib/sbcp/version'
+		puts SBCP::VERSION
 	end
 end
 
 ARGV << '-h' if ARGV.empty? # Displays help if no arguements given.
-@cli = HighLine.new # Initialize highline object
 begin o.parse!
 rescue OptionParser::MissingArgument => e
 	puts e
