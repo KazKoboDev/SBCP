@@ -14,6 +14,12 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+require 'yaml'
+require 'logger'
+require 'rufus-scheduler'
+require 'celluloid/current'
+require_relative 'parser'
+
 module SBCP
 	class Starbound
 		def initialize
@@ -24,15 +30,15 @@ module SBCP
 			unless ['restart', 'none'].include? backup_schedule # Only run backups if they're not set to run at restart or aren't disabled
 				if backup_schedule == 'hourly'
 					scheduler.cron "0 */1 * * *" do
-						SBCP::Backup.create_backup
+						Backup.create_backup
 					end
 				elsif backup_schedule == 'daily'
 					scheduler.cron "0 0 * * *" do
-						SBCP::Backup.create_backup
+						Backup.create_backup
 					end
 				else
 					scheduler.cron "0 */#{backup_schedule} * * *" do
-						SBCP::Backup.create_backup
+						Backup.create_backup
 					end
 				end
 			end
@@ -62,8 +68,6 @@ module SBCP
 			elsif @config['log_style'] == 'restart' then
 				stamp = "#{Time.now.strftime("%m-%d-%Y-%H-%M-%S")}-starbound"
 				log = Logger.new("#{@config['log_directory']}/#{stamp}.log")
-			else
-				abort("Error: Invalid log style")
 			end
 			log.formatter = proc { |severity, datetime, progname, msg| date_format = datetime.strftime("%H:%M:%S.%N")[0...-6]; "[#{date_format}] #{msg}" }
 			log.level = Logger::INFO
@@ -73,6 +77,7 @@ module SBCP
 			IO.popen("#{@config['starbound_directory']}/linux64/starbound_server", :chdir=>"#{@config['starbound_directory']}/linux64", :err=>[:child, :out]) do |output|
 				while line = output.gets
 					log.info(line)
+					puts line
 					#parser.async.parse(line)
 				end
 			end

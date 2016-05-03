@@ -28,11 +28,14 @@ module SBCP
 		# Full: backs up both Starbound and SBCP data.
 		# Defaults to Starbound.
 
-		def self.create_backup(kind=:starbound)
+		def self.create_backup(type='starbound')
 			config = YAML.load_file(File.expand_path('../../../config.yml', __FILE__))
-			return('Backups disabled.') if config['backup_history'] == 'none'
-			case kind
-			when :starbound
+			if config['backup_history'] == 'none'
+				puts 'Backups are currently disabled.'
+				return
+			end
+			case type
+			when 'starbound'
 				root = config['starbound_directory']
 				world_files = "#{root}/giraffe_storage/universe/*.world"
 				latest_files_directory = File.expand_path('../../../backup', __FILE__)
@@ -56,9 +59,9 @@ module SBCP
 						end
 					end
 				end
-			when :sbcp
+			when 'sbcp'
 				abort("Unimplemented.")
-			when :full
+			when 'full'
 				# This should take a complete backup of Starbound and SBCP.
 				# Currently only supports Starbound.
 				root = config['starbound_directory']
@@ -70,6 +73,7 @@ module SBCP
 					FileUtils.mv backup_name, backup_directory # Move the created backup to the backup directory
 				end
 			end
+			puts "Backup completed successfully."
 		end
 	end
 end

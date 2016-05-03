@@ -24,41 +24,17 @@ o = OptionParser.new do |opts|
 		mode = 'CLI' if mode == nil # Sets default behavior to CLI mode
 		case mode.upcase
 		when 'CLI'
-			require_relative '../lib/sbcp/daemon'
-			SBCP::Daemon.run
+			unless `screen -ls`.include? 'sbcp'
+				exec("ruby -e \'@dir = File.expand_path(\"..\", __FILE__); require @dir + \"/lib/sbcp.rb\"; SBCP::SBCP.new.repl\'")
+			else
+				exec("screen -r sbcp")
+			end
 		when 'GUI'
 			puts 'GUI mode is not yet implemented.'
 		end
 	end
-	opts.on('-r', '--restart', 'Gracefully restarts the Starbound server') do
+	opts.on('-r', '--reattach', 'Gracefully restarts the Starbound server') do
 		# TODO
-	end
-	opts.on('-R', '--reboot', 'Forcibly restarts the Starbound server') do
-		# TODO
-	end
-	opts.on('-g', '--grace', 'Gracefully stops the Starbound server') do
-		# TODO
-	end
-	opts.on('-K', '--kill', 'Forcibly stops the Starbound server') do
-		# TODO
-	end
-	opts.on('-k', '--kick PLAYER', 'Kicks a specified player by [Account, Name, IP]') do |player|
-		# TODO
-	end
-	opts.on('-b', '--ban PLAYER', 'Bans a specified player by [Account, Name, IP]') do |player|
-		# TODO
-	end
-	opts.on('-u', '--unban PLAYER', 'Unbans a specified player by [Account, Name, IP]') do |player|
-		# TODO
-	end
-	opts.on('-l', '--list TYPE', [:bans, :connections, :logs], 'Lists the last 50 lines of [bans, connections, logs].') do |type|
-		# TODO
-	end
-	opts.on('-B', '--backup TYPE', [:starbound, :sbcp, :full],'Creates a [starbound, sbcp, full] backup.') do |type|
-		require_relative '../lib/sbcp/backup'
-		puts "Initiating #{type.upcase} backup..."
-		SBCP::Backup.create_backup(type)
-		puts 'Backup has completed successfully.'
 	end
 	opts.on('-e', '--exit', 'Gracefully stops SBCP') do
 		# TODO
@@ -66,17 +42,21 @@ o = OptionParser.new do |opts|
 	opts.on('-a', '--abort', 'Forcibly stops SBCP') do
 		# TODO
 	end
+	opts.on('-d', '--docs', 'Opens the interactive documentation menu') do
+		require_relative '../lib/sbcp/help'
+		SBCP::Help.menu(:main)
+	end
 	opts.on_tail('-c', '--config', 'Opens the interactive configuration menu') do
 		require_relative '../lib/sbcp/configuration'
 		SBCP::Configuration.menu(:main)
 	end
-	opts.on_tail('-h', '--help', 'Opens the interactive documentation menu') do
-		require_relative '../lib/sbcp/help'
-		SBCP::Help.menu(:main)
-	end
 	opts.on_tail('-v', '--version', 'Displays the current SBCP version') do
 		require_relative '../lib/sbcp/version'
 		puts SBCP::VERSION
+	end
+	opts.on_tail('-h', '--help', 'Shows this menu') do
+		puts opts
+		exit
 	end
 end
 
@@ -84,28 +64,10 @@ ARGV << '-h' if ARGV.empty? # Displays help if no arguements given.
 begin o.parse!
 rescue OptionParser::MissingArgument => e
 	puts e
-	puts 'Please provide an arguement.'
-	puts "Example: sbcp #{e.to_s.split(' ').last} <arg>"
+	exit 1
 rescue OptionParser::InvalidArgument => e
 	puts e
-	flag = e.to_s.split(' ')[2]
-	case flag
-	when '-k'
-		puts 'Please provide uuid, name, or ip as an arguement.'
-		puts "Example: sbcp #{flag} uuid"
-	when '-b'
-		puts 'Please provide uuid, name, or ip as an arguement.'
-		puts "Example: sbcp #{flag} name"
-	when '-u'
-		puts 'Please provide uuid, name, or ip as an arguement.'
-		puts "Example: sbcp #{flag} ip"
-	when '-l'
-		puts 'Please provide bans, connections, or logs as an arguement.'
-		puts "Example: sbcp #{flag} bans"
-	when '-B'
-		puts 'Please provide starbound, sbcp, or full as an arguement.'
-		puts "Example: sbcp #{flag} starbound"
-	end
+	exit 1
 rescue OptionParser::InvalidOption => e
 	puts e
 	puts o 
