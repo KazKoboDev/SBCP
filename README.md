@@ -43,6 +43,14 @@ Now just install the SBCP gem:
 
     $ gem install sbcp --no-ri --no-rdoc
 
+## Updating
+
+Just type
+
+    $ gem update sbcp
+
+You will need to restart SBCP for the update to take effect.
+
 ## Usage
 
 You'll find that SBCP won't work properly without some additional configuration.
