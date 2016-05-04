@@ -120,14 +120,18 @@ module SBCP
 				when 'setup'
 					Setup.new.run
 				when 'start'
-					if `pidof starbound_server`.empty?
-						if $daemon.nil?
-							start
+					if not @config['starbound_directory'].nil?
+						if `pidof starbound_server`.empty?
+							if $daemon.nil?
+								start
+							else
+								say("<%= color('Duplicate prevented.', :warning) %> The daemon is still processing. Please wait and try again.")
+							end
 						else
-							say("<%= color('Duplicate prevented.', :warning) %> The daemon is still processing. Please wait and try again.")
+							say("<%= color('Duplicate prevented.', :warning) %> The server is already running.")
 						end
 					else
-						say("<%= color('Duplicate prevented.', :warning) %> The server is already running.")
+						say("<%= color('Error', :warning) %> Please run setup.")
 					end
 				when 'stop'
 					if agree("Are you sure? ", true)
