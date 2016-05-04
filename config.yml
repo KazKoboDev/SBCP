@@ -7,5 +7,5 @@ log_directory: ~
 log_history: 90
 log_style: daily
 duplicate_names: false
-duplicate_kick_msg: "Another player is currently online with your character's name."
+duplicate_kick_msg: Another player is currently online with your character's name.
 restart_schedule: 4
