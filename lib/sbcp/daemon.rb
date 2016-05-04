@@ -31,15 +31,15 @@ module SBCP
 
 		def start
 			# Quick check for invalid config values.
-			abort('Please run sbcp --setup first.') if @config['starbound_directory'].nil?
-			abort('Error - Invalid starbound directory') if not Dir.exist?(@config['starbound_directory']) && Dir.exist?(@config['starbound_directory'] + '/giraffe_storage')
-			abort('Error - Invalid backup directory') if not Dir.exist?(@config['backup_directory'])
-			abort('Error - Invalid backup schedule') if not ['hourly', 2, 3, 4, 6, 8, 12, 'daily', 'restart'].include? @config['backup_schedule']
-			abort('Error - Invalid backup history') if not  @config['backup_history'] == 'none' || @config['backup_history'] >= 1
-			abort('Error - Invalid log directory') if not Dir.exist?(@config['log_directory'])
-			abort('Error - Invalid log history') if not @config['log_history'].is_a?(Integer) && @config['log_history'] >= 1
-			abort('Error - Invalid log style') if not ['daily', 'restart'].include? @config['log_style']
-			abort('Error - Invalid restart schedule') if not ['none', 'hourly', 2, 3, 4, 6, 8, 12, 'daily'].include? @config['restart_schedule']
+			raise('Please run setup first.') if @config['starbound_directory'].nil?
+			raise('Error - Invalid starbound directory') if not Dir.exist?(@config['starbound_directory']) && Dir.exist?(@config['starbound_directory'] + '/giraffe_storage')
+			raise('Error - Invalid backup directory') if not Dir.exist?(@config['backup_directory'])
+			raise('Error - Invalid backup schedule') if not ['hourly', 2, 3, 4, 6, 8, 12, 'daily', 'restart'].include? @config['backup_schedule']
+			raise('Error - Invalid backup history') if not  @config['backup_history'] == 'none' || @config['backup_history'] >= 1
+			raise('Error - Invalid log directory') if not Dir.exist?(@config['log_directory'])
+			raise('Error - Invalid log history') if not @config['log_history'].is_a?(Integer) && @config['log_history'] >= 1
+			raise('Error - Invalid log style') if not ['daily', 'restart'].include? @config['log_style']
+			raise('Error - Invalid restart schedule') if not ['none', 'hourly', 2, 3, 4, 6, 8, 12, 'daily'].include? @config['restart_schedule']
 
 			# Require any present plugins
 			plugins_directory = "#{@config['starbound_directory']}/sbcp/plugins"
@@ -74,30 +74,6 @@ module SBCP
 				# This delay is needed or some commands don't report back correctly
 				sleep 5
 			end
-		end
-
-		private
-
-		# These methods are used only in GUI mode for managing the server.
-		# In CLI mode, server management is handled via CLI options.
-
-		def start_server
-			# TODO: Create code that spawns a sub-process containing the server
-		end
-
-		def restart_server
-		end
-
-		def force_restart_server
-		end
-
-		def stop_server
-		end
-
-		def force_stop_server
-		end
-
-		def server_status
 		end
   	end
 end

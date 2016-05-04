@@ -20,18 +20,12 @@ require 'yaml'
 
 module SBCP
 	class RCON
-		def initialize
+		def initialize(port, pass)
 			original_verbosity = $VERBOSE
 			$VERBOSE = nil
-			config = YAML.load_file(File.expand_path('../../../config.yml', __FILE__))
-			sb_config_raw = File.read("#{config['starbound_directory']}/giraffe_storage/starbound.config")
-			sb_config_parsed = JSON.parse(sb_config_raw)
-			if sb_config_parsed["runRconServer"] == true
-				@rcon = SourceServer.new("127.0.0.1:#{sb_config_parsed["rconServerPort"]}")
-				@rcon.rcon_auth(sb_config_parsed["rconServerPassword"])
-			else
-				return("RCON is not enabled. Please check your starbound.config file.")
-			end
+			SteamSocket.timeout = 100
+			@rcon = SourceServer.new("127.0.0.1:#{port}")
+			@rcon.rcon_auth(pass)
 			$VERBOSE = original_verbosity
 		end
 

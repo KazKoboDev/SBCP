@@ -19,18 +19,24 @@ require 'celluloid/current'
 require 'time_diff'
 require 'tempfile'
 require 'yaml'
+require 'pp'
 require 'pry'
 
 require_relative 'sbcp/backup'
+require_relative 'sbcp/config'
 require_relative 'sbcp/daemon'
+require_relative 'sbcp/rcon'
+require_relative 'sbcp/setup'
 
 module SBCP
 	class SBCP
 		def initialize
 			@config = YAML.load_file(File.expand_path('../../config.yml', __FILE__))
-			@commands = ['backup', 'detach', 'exit', 'get', 'kill', 'quit', 'reboot', 'restart', 'start', 'stop', 'help']
+			@commands = ['backup', 'clear', 'config', 'detach', 'exit', 'get', 'kill', 'quit', 'reboot', 'restart', 'say', 'setup', 'start', 'stop', 'help']
 			@commands_scheme = [
 				"<%= color('backup', :command) %>",
+				"<%= color('clear', :command) %>",
+				"<%= color('config', :command) %>",
 				"<%= color('detach', :command) %>",
 				"<%= color('exit', :command) %>",
 				"<%= color('get', :command) %>",
@@ -38,6 +44,8 @@ module SBCP
 				"<%= color('quit', :command) %>",
 				"<%= color('reboot', :command) %>",
 				"<%= color('restart', :command) %>",
+				"<%= color('say', :command) %>",
+				"<%= color('setup', :command) %>",
 				"<%= color('start', :command) %>",
 				"<%= color('stop', :command) %>",
 				"<%= color('help', :command) %>"
@@ -79,6 +87,12 @@ module SBCP
 				case input
 				when /^(backup|backup\s?(\S+))$/
 					backup($2)
+				when 'clear'
+					system('clear')
+				when 'config'
+					Config.new.config_menu(:main)
+				when 'detach'
+					system('screen -d')
 				when 'exit', 'quit'
 					say("<%= color('!!! This action could result in data loss !!!', :warning) %>")
 					say("<%= color('!!! Starbound shall be stopped if running !!!', :warning) %>")
@@ -102,6 +116,10 @@ module SBCP
 					if agree("Are you sure? ", true)
 						restart
 					end
+				when /^(say|say\s?(.+))$/
+					sb_say($2)
+				when 'setup'
+					Setup.new.run
 				when 'start'
 					if `pidof starbound_server`.empty?
 						if $daemon.nil?
@@ -116,8 +134,6 @@ module SBCP
 					if agree("Are you sure? ", true)
 						stop
 					end
-				when 'detach'
-					system('screen -d')
 				when /^(help|help\s?(\S+))$/
 					command = $2
 					if not command.nil?
@@ -155,8 +171,6 @@ module SBCP
 		def get(data=nil)
 			if not data.nil?
 				case data
-				when 'bans'
-
 				when 'info'
 					unless Starbound::SESSION.nil? || Starbound::SESSION.empty?
 						Starbound::SESSION[:info][:uptime] = Time.diff(Starbound::SESSION[:info][:started], Time.now, '%H %N %S')[:diff]
@@ -171,11 +185,7 @@ module SBCP
 					end
 				when 'players'
 					unless Starbound::SESSION.nil? || Starbound::SESSION.empty?
-						Starbound::SESSION[:players].each_value do |player|
-							player.each_pair do |key, value|
-								say("<%= color('#{key}', :info) %> #{value}")
-							end
-						end
+						pp(Starbound::SESSION[:players])
 					else
 						say("<%= color('Error!', :failure) %> Session data is missing or empty.")
 					end
@@ -208,6 +218,19 @@ module SBCP
 			unless file.nil?
 				file.close
 				file.unlink
+			end
+		end
+
+		def sb_say(string)
+			unless string.nil?
+				if not $rcon.nil?
+					$rcon.execute("say #{string}")
+					say("<%= color('Message sent to server.', :success) %>")
+				else
+					say("<%= color('RCON is not running.', :warning) %>")
+				end
+			else
+				say("Please type something to say.")
 			end
 		end
 

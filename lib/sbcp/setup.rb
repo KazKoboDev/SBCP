@@ -20,7 +20,11 @@ require 'highline'
 
 module SBCP
 	class Setup
-		def self.run_setup
+		def initialize
+			@cli = HighLine.new
+		end
+
+		def run
 			config_file = File.expand_path('../../../config.yml', __FILE__)
 			config = YAML.load_file(config_file)
 			response = @cli.agree('Are you sure you want to run the first-time setup? (y/n)')
@@ -66,7 +70,7 @@ module SBCP
 
 				@cli.newline
 				@cli.say('Welcome to SBCP.')
-				@cli.say('You can change any options later by running the config command. (sbcp -c)')
+				@cli.say('You can change any options later by running the config command. (config)')
 				if @cli.agree("Would you like to skip setup and just use SBCP's default settings? (See README) (y/n)")
 					# So we're running with the defaults. Let's get 'em setup!
 					FileUtils.mkdir "#{root}/sbcp" if not Dir.exist?("#{root}/sbcp")
@@ -78,6 +82,8 @@ module SBCP
 					config['log_directory'] = "#{root}/sbcp/logs"
 					config['log_history'] = 90
 					config['log_style'] = "daily"
+					config['duplicate_names'] = false
+					config['duplicate_kick_msg'] = "Another player is currently online with your character's name."
 					config['restart_schedule'] = 4
 				else
 					# Backup Settings
@@ -180,7 +186,7 @@ module SBCP
 
 				@cli.newline
 				@cli.say('SBCP has been configured successfully.')
-				@cli.say('Type sbcp -h for a list of commands.')
+				@cli.say('Type help for a list of commands.')
 			end
 		end
 	end

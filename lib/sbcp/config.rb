@@ -18,7 +18,11 @@ require 'yaml'
 require 'highline'
 
 module SBCP
-	class Configuration
+	class Config
+		def initialize
+			@cli = HighLine.new
+		end
+
 		def config_menu(menu)
 			config_file = File.expand_path('../../../config.yml', __FILE__)
 			config = YAML.load_file(config_file)
@@ -31,7 +35,7 @@ module SBCP
 					menu.choice(:Backups) { config_menu(:backups) }
 					menu.choice(:Logs) { config_menu(:logs) }
 					menu.choice(:Restarts) { config_menu(:restarts) }
-					menu.choice(:Exit) { exit }
+					menu.choice(:Exit) { puts 'Thank you for using SBCP.' }
 				end
 			when :general
 				answer = @cli.choose do |menu|

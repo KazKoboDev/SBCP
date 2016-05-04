@@ -18,6 +18,8 @@
 
 require 'optparse'
 
+require_relative '../lib/sbcp/version'
+
 o = OptionParser.new do |opts|
 	opts.banner = 'Usage: sbcp [options]'
 	opts.on('-s', '--start [MODE]', 'Starts SBCP in either CLI or GUI mode (Default: CLI)') do |mode|
@@ -33,25 +35,10 @@ o = OptionParser.new do |opts|
 			puts 'GUI mode is not yet implemented.'
 		end
 	end
-	opts.on('-r', '--reattach', 'Gracefully restarts the Starbound server') do
-		# TODO
-	end
-	opts.on('-e', '--exit', 'Gracefully stops SBCP') do
-		# TODO
-	end
-	opts.on('-a', '--abort', 'Forcibly stops SBCP') do
-		# TODO
-	end
-	opts.on('-d', '--docs', 'Opens the interactive documentation menu') do
-		require_relative '../lib/sbcp/help'
-		SBCP::Help.menu(:main)
-	end
-	opts.on_tail('-c', '--config', 'Opens the interactive configuration menu') do
-		require_relative '../lib/sbcp/configuration'
-		SBCP::Configuration.menu(:main)
+	opts.on('-r', '--reattach', 'Re-attaches to a running SBCP session if one exists') do
+		exec('screen -r sbcp')
 	end
 	opts.on_tail('-v', '--version', 'Displays the current SBCP version') do
-		require_relative '../lib/sbcp/version'
 		puts SBCP::VERSION
 	end
 	opts.on_tail('-h', '--help', 'Shows this menu') do
