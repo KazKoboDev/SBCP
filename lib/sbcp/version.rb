@@ -15,5 +15,5 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module SBCP
-  VERSION = "0.2.1"
+  VERSION = "0.2.2"
 end

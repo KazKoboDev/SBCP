@@ -131,7 +131,7 @@ module SBCP
 							say("<%= color('Duplicate prevented.', :warning) %> The server is already running.")
 						end
 					else
-						say("<%= color('Error', :warning) %> Please run setup.")
+						say("<%= color('Error', :warning) %> Please run setup then restart SBCP.")
 					end
 				when 'stop'
 					if agree("Are you sure? ", true)
