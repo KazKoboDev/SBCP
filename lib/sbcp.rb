@@ -20,7 +20,6 @@ require 'time_diff'
 require 'tempfile'
 require 'yaml'
 require 'pp'
-require 'pry'
 
 require_relative 'sbcp/backup'
 require_relative 'sbcp/config'
@@ -145,8 +144,6 @@ module SBCP
 					else
 						help
 					end
-				when 'debug'
-					pry
 				else
 					say('Invalid command. Try help for a list of possible commands.')
 				end
