@@ -74,6 +74,8 @@ Afterwards, it will ask if you want to use the default values. All default direc
 Once this is finished, you can just do this for commands:
 
     $ help
+
+Make sure that you restart SBCP after running setup, or it will complain that you haven't run it yet.
     
 If you want to leave SBCP without closing it, just type:
 
