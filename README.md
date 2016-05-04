@@ -10,13 +10,17 @@ Starbound Control Panel, or SBCP for short, is a Ruby gem that allows server own
 * Fully automated backups
 * Fully automated restarts (including recovery from crashes)
 * Easy server managment commands (start, restart, stop, etc.)
-* Intuitive configuration menu for adjusting internal settings
+* Interactive config menu
+* Server information view (started, uptime, restart_in, etc.)
+* Player information view (account, name, ip, nickname, etc.)
+* Automatically prevent duplicate character names from joining
+* RCON Support
 
 ## Requirements
 
-SBCP was designed for Linux and developed on Ubuntu. It has been tested on the 64-bit version of Ubuntu Server 16.04, and partially tested on the 64-bit versions of Ubuntu Server 15.10, 14.04, and 12.04.
-
+SBCP was designed for Linux and developed on Ubuntu 16.04.
 SBCP was developed on Ruby 2.3.0.
+[Screen](https://help.ubuntu.com/community/Screen) is required. (Ubuntu usually has this by default)
 
 Your mileage may vary.
 
@@ -41,9 +45,10 @@ Now just install the SBCP gem:
 
 You'll find that SBCP won't work properly without some additional configuration.
 
-Go ahead and start this process with the setup command:
+Go ahead and start SBCP, then run the setup command:
 
-    $ sbcp --setup
+    $ sbcp -s
+    $ setup
     
 It will attempt to ascertain the location of your Starbound server's installation directory.
 
@@ -58,9 +63,15 @@ Afterwards, it will ask if you want to use the default values. All default direc
 
 Once this is finished, you can just do this for commands:
 
-    $ sbcp --help
+    $ help
     
-Note that currently not all commands are implemented.
+If you want to leave SBCP without closing it, just type:
+
+	$ detach
+
+If you ever want to go back, type:
+
+	$ sbcp -r
 
 ## Plugins
 
@@ -70,22 +81,23 @@ You can find the plugins folder in /sbcp/plugins, in the installation directory 
 
 ## TODO
 
-SBCP isn't anywhere near complete. I have some additional features planned:
+SBCP still has some work left to be done. I have some additional features planned:
 
 * GUI mode
-* Permissions System to Allow Multiple Users of GUI mode
-* Output Parser (useful for emulating in-game commands, amongst other things)
-* RCON support
+* Permissions System
 * Better Plugin Support
 * Ban/Kick/Unban commands
-* Server announcements (including restart announcements)
-* Write tests
+* Automatic server announcements
+* Automatic planet restoration
+* Various in-game commands
+
+## Known Issues
+
+* The time until next restart listed by the "get info" command will be incorrect until after the first restart (actual restart times are not affected)
 
 ## Contributing
 
 Bug reports and pull requests are welcome.
-
-Although bear with me, I haven't used GitHub much before so I'll need to read up on pull requests.
 
 
 ## License
