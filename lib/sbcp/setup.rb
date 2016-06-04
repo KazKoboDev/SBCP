@@ -182,7 +182,7 @@ module SBCP
 				File.write("#{root}/sbcp/plugins/README.txt", "You can override SBCP's behavior by writing your own Ruby plugins and placing them here.\nCheck the README on GitHub for more information.")
 
 				# We save everything back to the config file at the end.
-				File.write(File.expand_path('../../config.yml', __FILE__), config.to_yaml)
+				File.write(config_file, config.to_yaml)
 
 				@cli.newline
 				@cli.say('SBCP has been configured successfully.')

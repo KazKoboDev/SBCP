@@ -27,7 +27,7 @@ o = OptionParser.new do |opts|
 		case mode.upcase
 		when 'CLI'
 			unless `screen -ls`.include? 'sbcp'
-				exec("screen -S sbcp ruby -e \'@dir = File.expand_path(\"..\", __FILE__); require @dir + \"/lib/sbcp.rb\"; SBCP::SBCP.new.repl\'")
+				exec("screen -S sbcp ruby -e \'@dir = Gem::Specification.find_by_name(\"sbcp\").gem_dir; require @dir + \"/lib/sbcp.rb\"; SBCP::SBCP.new.repl\'")
 			else
 				exec("screen -r sbcp")
 			end

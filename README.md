@@ -19,7 +19,9 @@ Starbound Control Panel, or SBCP for short, is a Ruby gem that allows server own
 ## Requirements
 
 SBCP was designed for Linux and developed on Ubuntu 16.04.
+
 SBCP was developed on Ruby 2.3.0.
+
 [Screen](https://help.ubuntu.com/community/Screen) is required. (Ubuntu usually has this by default)
 
 Your mileage may vary.
@@ -40,6 +42,14 @@ If you already have RVM:
 Now just install the SBCP gem:
 
     $ gem install sbcp --no-ri --no-rdoc
+
+## Updating
+
+Just type
+
+    $ gem update sbcp
+
+You will need to restart SBCP for the update to take effect.
 
 ## Usage
 
@@ -64,6 +74,8 @@ Afterwards, it will ask if you want to use the default values. All default direc
 Once this is finished, you can just do this for commands:
 
     $ help
+
+Make sure that you restart SBCP after running setup, or it will complain that you haven't run it yet.
     
 If you want to leave SBCP without closing it, just type:
 
@@ -93,7 +105,7 @@ SBCP still has some work left to be done. I have some additional features planne
 
 ## Known Issues
 
-* The time until next restart listed by the "get info" command will be incorrect until after the first restart (actual restart times are not affected)
+Please see the [issues](https://github.com/Kazyyk/SBCP/issues) page.
 
 ## Contributing
 

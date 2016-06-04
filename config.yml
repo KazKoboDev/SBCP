@@ -1,9 +1,9 @@
 ---
-starbound_directory: "/home/ubuntu/Starbound"
-backup_directory: "/home/ubuntu/Starbound/sbcp/backups"
+starbound_directory: ~
+backup_directory: ~
 backup_history: 90
 backup_schedule: hourly
-log_directory: "/home/ubuntu/Starbound/sbcp/logs"
+log_directory: ~
 log_history: 90
 log_style: daily
 duplicate_names: false
