@@ -18,13 +18,32 @@ require 'steam-condenser'
 require 'json'
 require 'yaml'
 
+#Extend the Source Server to patch the rcon_exec method
+#There appears to be an issue with SB's handling of multipacket responses
+class StarboundRConServer < SourceServer
+	def rcon_exec(command)
+		raise RCONNoAuthError unless @rcon_authenticated
+
+		@rcon_socket.send RCONExecRequest.new(@rcon_request_id, command)
+
+		response_packet = @rcon_socket.reply
+
+		if response_packet.nil? || response_packet.is_a?(RCONAuthResponse)
+			@rcon_authenticated = false
+			raise RCONNoAuthError
+		end
+
+		return response_packet.response
+	end
+end
+
 module SBCP
 	class RCON
 		def initialize(port, pass)
 			original_verbosity = $VERBOSE
 			$VERBOSE = nil
 			SteamSocket.timeout = 100
-			@rcon = SourceServer.new("127.0.0.1:#{port}")
+			@rcon = StarboundRConServer.new("127.0.0.1:#{port}")
 			@rcon.rcon_auth(pass)
 			$VERBOSE = original_verbosity
 		end
@@ -32,10 +51,12 @@ module SBCP
 		def execute(command)
 			# We swallow the time out exception here because Steam Condenser expects a reply
 			# Starbound doesn't seem to always give a reply, even though the commands work
+			reply = nil
 			begin
-				@rcon.rcon_exec(command)
+				reply = @rcon.rcon_exec(command)
 			rescue Exception
 			end
+			return reply
 		end
 	end
 end
