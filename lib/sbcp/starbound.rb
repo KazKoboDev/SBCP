@@ -30,9 +30,10 @@ module SBCP
 		def initialize
 			@config = YAML.load_file(File.expand_path('../../../config.yml', __FILE__))
 			SESSION[:info] = {
-				:started	=> nil,
-				:uptime		=> nil,
-				:restart_in	=> nil,
+				:started			=> nil,
+				:uptime				=> nil,
+				:restart_in			=> nil,
+				:last_location_poll	=> nil,
 			}
 			SESSION[:players] = {}
 			SESSION[:info][:restart_in] = 'Never' if @config['restart_schedule'] == 'disabled'

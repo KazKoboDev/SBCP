@@ -16,8 +16,10 @@
 
 require 'celluloid/current'
 require 'tempfile'
+require 'time'
 require 'yaml'
 
+require_relative 'command'
 require_relative 'plugin'
 require_relative 'rcon'
 
@@ -40,6 +42,7 @@ module SBCP
 			@log.formatter = proc { |severity, datetime, progname, msg| date_format = datetime.strftime("%H:%M:%S.%N")[0...-6]; "[#{date_format}] #{msg}" }
 			@log.level = Logger::INFO
 			@log.info("---------- SBCP is starting a new Starbound instance ----------\n")
+			@command_handler = CommandHandler.new()
 		end
 
 		def log(string)
@@ -54,7 +57,7 @@ module SBCP
 					case line
 					when /Starting UniverseServer with UUID:/
 						if @sb_config_parsed["runRconServer"] == true
-							$rcon = RCON.new(@sb_config_parsed["rconServerPort"], 'password') #TODO @sb_config_parsed["rconServerPassword"])
+							$rcon = RCON.new(@sb_config_parsed["rconServerPort"], @sb_config_parsed["rconServerPassword"])
 						else
 							puts "RCON is not enabled. Please check your starbound.config file."
 							puts "Some of SBCP's features may not work correctly without RCON."
@@ -65,7 +68,8 @@ module SBCP
 							:account => $1,
 							:name => $2,
 							:ip => $3,
-							:nick => nil
+							:nick => $2,
+							:location => nil
 						}
 					when /Client '(.+)' <(\d+)> \((.+)\) connected/
 						if get_id_from_name($1)
@@ -78,6 +82,8 @@ module SBCP
 							end
 						elsif id = get_tempid_from_name($1)
 							Starbound::SESSION[:players][$2] = @tmp[id]
+
+							$database.add_character(@tmp[id][:account], @tmp[id][:name])
 							@tmp.delete(id)
 							Plugin.hook("login", $1, $2, $3)
 						end
@@ -99,9 +105,19 @@ module SBCP
 			def parse_chat(line)
 				if false == Plugin.hook("chat", line)
 					case line
-					when /<(.+)> \/nick (.+)/
-						id = get_id_from_name($1)
-						Starbound::SESSION[:players][id][:nick] = $2
+					when /<(.+)> \/(\S+) *(.*)/
+						character = $1
+						command = $2
+						args = $3
+						if false == Plugin.hook("command", character, command, args)
+							id = get_id_from_name(character)
+							case command
+							when 'nick'
+								Starbound::SESSION[:players][id][:nick] = args.split(' ', 2)[0]
+							else
+								@command_handler.execute(id, command, args)
+							end
+						end
 					end
 					log(line)
 				end
