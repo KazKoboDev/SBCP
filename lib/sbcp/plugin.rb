@@ -20,15 +20,12 @@ module SBCP
 
 		def self.register(plugin)
 			@@plugin_registry.push(plugin)
-			puts plugin.methods.join("\n")
 		end
 
 		def self.hook(hook_id, *args)
-			puts "HOOK #{hook_id}"
 			overrides = false
 			@@plugin_registry.each do |plgn|
 				if plgn.respond_to?(hook_id)
-					puts "-PLUGIN #{plgn}"
 					overrides = overrides || plgn.send(hook_id, *args)
 				end
 			end

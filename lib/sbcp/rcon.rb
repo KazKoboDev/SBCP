@@ -40,12 +40,32 @@ end
 module SBCP
 	class RCON
 		def initialize(port, pass)
+			SteamSocket.timeout = 1000
+			@port = port
+			@pass = pass
+			connect()
+		end
+
+		def connect
+			tries = 0
 			original_verbosity = $VERBOSE
 			$VERBOSE = nil
-			SteamSocket.timeout = 100
-			@rcon = StarboundRConServer.new("127.0.0.1:#{port}")
-			@rcon.rcon_auth(pass)
+			begin
+				@rcon = StarboundRConServer.new("127.0.0.1:#{@port}")
+				@rcon.rcon_auth(@pass)
+				say("<%= color('RCon Connection Established.', :success) %>")
+				$VERBOSE = original_verbosity
+				return true
+			rescue
+				if tries < 3
+					tries += 1
+					retry
+				else
+					say("<%= color('RCon Connection failed.', :warning) %>")
+				end
+			end
 			$VERBOSE = original_verbosity
+			return false
 		end
 
 		def execute(command)
@@ -55,6 +75,11 @@ module SBCP
 			begin
 				reply = @rcon.rcon_exec(command)
 			rescue Exception
+				say("<%= color('RCon Error: #{$!}', :warning) %>")
+				say("<%= color('Attempting to reconnect.', :warning) %>")
+				if connect()
+					reply = @rcon.rcon_exec(command)
+				end
 			end
 			return reply
 		end
