@@ -24,6 +24,7 @@ require 'pp'
 require_relative 'sbcp/backup'
 require_relative 'sbcp/config'
 require_relative 'sbcp/daemon'
+require_relative 'sbcp/database'
 require_relative 'sbcp/rcon'
 require_relative 'sbcp/setup'
 
@@ -31,6 +32,7 @@ module SBCP
 	class SBCP
 		def initialize
 			@config = YAML.load_file(File.expand_path('../../config.yml', __FILE__))
+			$database = Database.new()
 			@commands = ['backup', 'clear', 'config', 'detach', 'exit', 'get', 'kill', 'quit', 'reboot', 'restart', 'say', 'setup', 'start', 'stop', 'help']
 			@commands_scheme = [
 				"<%= color('backup', :command) %>",
