@@ -7,10 +7,10 @@ Gem::Specification.new do |spec|
   spec.name          = 'sbcp'
   spec.version       = SBCP::VERSION
   spec.authors       = ['Kazyyk']
-  spec.email         = ['kazyyk@gmail.com']
+  spec.email         = ['kazyyk@me.com']
 
   spec.summary       = %q{SBCP is a Starbound server management solution for Linux.}
-  spec.homepage      = 'https://www.kazyyk.com/sbcp'
+  spec.homepage      = 'https://github.com/Kazyyk/SBCP'
   spec.license       = 'GNU AGPL v3'
 
   spec.files         = `git ls-files -z`.split("\x0").reject { |f| f.match(%r{^(test|spec|features)/}) }
