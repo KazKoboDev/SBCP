@@ -37,7 +37,7 @@ module SBCP
 			case type
 			when 'starbound'
 				root = config['starbound_directory']
-				world_files = "#{root}/giraffe_storage/universe/*.world"
+				world_files = "#{root}/storage/universe/*.world"
 				latest_files_directory = File.expand_path('../../../backup', __FILE__)
 				backup_directory = config['backup_directory']
 				backup_name = "#{Time.now.strftime("%m-%d-%Y-%H-%M-%S")}-starbound_backup.tar.bz2"
@@ -46,7 +46,7 @@ module SBCP
 					if result.success?
 						unless result.changes.length == 0
 							result.changes.each do |change|
-								changed_files.push("#{root}/giraffe_storage/universe/#{change.filename}")
+								changed_files.push("#{root}/storage/universe/#{change.filename}")
 							end
 							FileUtils.cd('/tmp') do
 								random_name = SecureRandom.urlsafe_base64
@@ -65,7 +65,7 @@ module SBCP
 				# This should take a complete backup of Starbound and SBCP.
 				# Currently only supports Starbound.
 				root = config['starbound_directory']
-				giraffe_directory = "#{root}/giraffe_storage"
+				giraffe_directory = "#{root}/storage"
 				backup_directory = config['backup_directory']
 				backup_name = "#{Time.now.strftime("%m-%d-%Y-%H-%M-%S")}-full_backup.tar.bz2"
 				FileUtils.cd('/tmp') do

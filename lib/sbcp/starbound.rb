@@ -79,7 +79,7 @@ module SBCP
 
 			SESSION[:info][:started] = Time.now
 
-			IO.popen("#{@config['starbound_directory']}/linux64/starbound_server", :chdir=>"#{@config['starbound_directory']}/linux64", :err=>[:child, :out]) do |output|
+			IO.popen("#{@config['starbound_directory']}/linux/starbound_server", :chdir=>"#{@config['starbound_directory']}/linux", :err=>[:child, :out]) do |output|
 				while line = output.gets
 					parser.async.parse(line)
 				end

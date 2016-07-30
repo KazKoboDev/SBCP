@@ -32,7 +32,7 @@ module SBCP
 		def start
 			# Quick check for invalid config values.
 			raise('Please run setup first.') if @config['starbound_directory'].nil?
-			raise('Error - Invalid starbound directory') if not Dir.exist?(@config['starbound_directory']) && Dir.exist?(@config['starbound_directory'] + '/giraffe_storage')
+			raise('Error - Invalid starbound directory') if not Dir.exist?(@config['starbound_directory']) && Dir.exist?(@config['starbound_directory'] + '/storage')
 			raise('Error - Invalid backup directory') if not Dir.exist?(@config['backup_directory'])
 			raise('Error - Invalid backup schedule') if not ['hourly', 2, 3, 4, 6, 8, 12, 'daily', 'restart'].include? @config['backup_schedule']
 			raise('Error - Invalid backup history') if not  @config['backup_history'] == 'none' || @config['backup_history'] >= 1

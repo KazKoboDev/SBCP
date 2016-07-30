@@ -34,13 +34,13 @@ module SBCP
 				@cli.newline
 				@cli.say('SBCP is starting up...')
 				@cli.say('SBCP is attempting to automatically locate Starbound...')
-				result = Dir.glob('/**/*/giraffe_storage')
+				result = Dir.glob('/**/*/Starbound/storage')
 				if result.empty?
 					@cli.say('Unable to locate the Starbound installation directory.')
 					a = ''
-					until Dir.exist?(a) && Dir.exist?(a + '/giraffe_storage') && File.writable?(a)
+					until Dir.exist?(a) && Dir.exist?(a + '/storage') && File.writable?(a)
 						a = @cli.ask("Please locate the directory manually and enter it below.\n> ")
-						if not Dir.exist?(a) && Dir.exist?(a + '/giraffe_storage')
+						if not Dir.exist?(a) && Dir.exist?(a + '/storage')
 							@cli.say('Error - This dirctory does not exist or is not a Starbound installation. Try again.')
 						elsif not File.writable?(a)
 							@cli.say('Error - This dirctory cannot be written to. Check permissions and try again.')
@@ -59,7 +59,7 @@ module SBCP
 						end
 						@cli.say("Starbound installation directory set to \"#{config['starbound_directory']}\"")
 					else
-						r = result.first.split("/giraffe_storage").first
+						r = result.first.split("/storage").first
 						@cli.say('SBCP successfully located the Starbound installation directory at:')
 						@cli.say("\"#{r}\"")
 						abort('Error - This directory cannot be written to. Check permissions and try again.') if not File.writable?(r)

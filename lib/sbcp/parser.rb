@@ -27,7 +27,7 @@ module SBCP
 		def initialize
 			Starbound::SESSION[:players] = {} if not Starbound::SESSION[:players].empty?
 			@config = YAML.load_file(File.expand_path('../../../config.yml', __FILE__))
-			sb_config_raw = File.read("#{@config['starbound_directory']}/giraffe_storage/starbound.config")
+			sb_config_raw = File.read("#{@config['starbound_directory']}/storage/starbound_server.config")
 			@sb_config_parsed = JSON.parse(sb_config_raw)
 			@tmp = {}
 			if @config['log_style'] == 'daily' then

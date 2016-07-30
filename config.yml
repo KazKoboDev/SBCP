@@ -1,9 +1,9 @@
 ---
-starbound_directory: ~
-backup_directory: ~
+starbound_directory: "/home/dhc-user/Steam/steamapps/common/Starbound"
+backup_directory: "/home/dhc-user/Steam/steamapps/common/Starbound/sbcp/backups"
 backup_history: 90
 backup_schedule: hourly
-log_directory: ~
+log_directory: "/home/dhc-user/Steam/steamapps/common/Starbound/sbcp/logs"
 log_history: 90
 log_style: daily
 duplicate_names: false
