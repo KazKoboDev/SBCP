@@ -25,6 +25,7 @@ module SBCP
 		@@EMPHASIS = '^#ddd37b;'
 		@@WARNING = '^red;'
 		@@PLAIN = '^#aaaaaa;'
+		@@PLANET = '^green;'
 
 		def self.beacon(id, args)
 			case args.split(' ', 2)[0].downcase()
@@ -137,7 +138,31 @@ module SBCP
 			end
 		end
 
-		def self.locate(id, args)
+		def self.online(id, args)
+			account_model = $database.get_account(Starbound::SESSION[:players][id][:account])
+			if not account_model.nil? and account_model.permission_level >= Models::Account::MOD
+				mod = true
+			else
+				mod = false
+			end
+
+			list_str = "#{@@PLAIN}Characters online: "
+			first = true
+			Starbound::SESSION[:players].each_pair do |k, v|
+				character_model =$database.get_character(v[:account], v[:name])
+				if mod or character_model.nil? or not character_model.incognito
+					if first
+						list_str = list_str + v[:nick]
+						first = false
+					else
+						list_str = list_str + ", #{v[:nick]}"
+					end
+				end
+			end
+			$rcon.execute("say /w #{Starbound::SESSION[:players][id][:nick]} #{list_str}")
+		end
+
+		def self.ping(id, args)
 			poll_locations()
 			places = []
 			#Collect list of all places that players are at
@@ -204,28 +229,9 @@ module SBCP
 			$rcon.execute("say /w #{Starbound::SESSION[:players][id][:nick]} #{out_str}")
 		end
 
-		def self.online(id, args)
-			account_model = $database.get_account(Starbound::SESSION[:players][id][:account])
-			if not account_model.nil? and account_model.permission_level >= Models::Account::MOD
-				mod = true
-			else
-				mod = false
-			end
-
-			list_str = "#{@@PLAIN}Characters online: "
-			first = true
-			Starbound::SESSION[:players].each_pair do |k, v|
-				character_model =$database.get_character(v[:account], v[:name])
-				if mod or character_model.nil? or not character_model.incognito
-					if first
-						list_str = list_str + v[:nick]
-						first = false
-					else
-						list_str = list_str + ", #{v[:nick]}"
-					end
-				end
-			end
-			$rcon.execute("say /w #{Starbound::SESSION[:players][id][:nick]} #{list_str}")
+		def self.planet_chat(id, args)
+			poll_locations()
+			send_to_location(Starbound::SESSION[:players][id][:location], "#{@@EMPHASIS}#{Starbound::SESSION[:players][id][:name]}: #{@@PLANET}#{args}")
 		end
 
 		def self.planet(id, args)
@@ -385,15 +391,15 @@ module SBCP
 				:handler => 'beacon',
 				:help => "[on] [off] - Shows/Hides this character in the /online and /find results."
 	 		},
+ 			{
+				:command => 'claim',
+				:handler => 'claim',
+				:help => "[new] [release] [name <name>] [description <description>] - Manages planet claims."
+			},
 			{
-				:command => 'online',
-				:handler => 'online',
-				:help => "- Lists all characters currently online."
-	 		},
-			{
-				:command => 'locate',
-				:handler => 'locate',
-				:help => "- Lists populations of all active locations."
+				:command => 'examine',
+				:handler => 'examine',
+				:help => "<target> - Dislays the target's description."
 	 		},
 			{
 				:command => 'find',
@@ -401,30 +407,35 @@ module SBCP
 				:help => "<target> - Displays the current location of the target character."
 	 		},
 			{
-				:command => 'examine',
-				:handler => 'examine',
-				:help => "<target> - Dislays the target's description."
+				:command => 'online',
+				:handler => 'online',
+				:help => "- Lists all characters currently online."
 	 		},
 	 		{
-				:command => 'setexamine',
-				:handler => 'setexamine',
-				:help => "<description>- Sets this character's description."
- 			},
+ 				:command => 'p',
+				:handler => 'planet_chat',
+				:help => "- Sends a messsage to the current planet."
+			},
+			{
+				:command => 'ping',
+				:handler => 'ping',
+				:help => "- Lists populations of all active locations."
+	 		},
  			{
 				:command => 'planet',
 				:handler => 'planet',
 				:help => "- Displays the current location's description."
 			},
  			{
-				:command => 'claim',
-				:handler => 'claim',
-				:help => "[new] [release] [name <name>] [description <description>] - Manages planet claims."
-			},
- 			{
 				:command => 'roll',
 				:handler => 'roll',
 				:help => "<xdy> - Rolls x dice with y sides. Maximum of 10 dice and 100 sides."
 			},
+	 		{
+				:command => 'setexamine',
+				:handler => 'setexamine',
+				:help => "<description>- Sets this character's description."
+ 			},
 		 ]
 		 def self.commands
 		 	return @@commands
