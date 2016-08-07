@@ -15,8 +15,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 require 'steam-condenser'
-require 'json'
-require 'yaml'
 
 module SBCP
 	class RCON

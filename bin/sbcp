@@ -39,6 +39,15 @@ o = OptionParser.new do |opts|
 	opts.on('-r', '--reattach', 'Re-attaches to a running SBCP session if one exists') do
 		exec('screen -r sbcp')
 	end
+	opts.on('-c', '--clear', 'Clears the config file so that setup can be run again [Use if corrupt]') do
+		config = File.expand_path('../../config.json', __FILE__)
+		if File.exist?(config)
+			File.delete(config)
+			puts "The configuration file has been cleared."
+		else
+			puts "Configuration file not found."
+		end
+	end
 	opts.on_tail('-v', '--version', 'Displays the current SBCP version') do
 		puts SBCP::VERSION
 	end

@@ -17,7 +17,6 @@
 require 'securerandom'
 require 'fileutils'
 require 'rsync'
-require 'yaml'
 module SBCP
 	class Backup
 
@@ -29,17 +28,16 @@ module SBCP
 		# Defaults to Starbound.
 
 		def self.create_backup(type='starbound')
-			config = YAML.load_file(File.expand_path('../../../config.yml', __FILE__))
-			if config['backup_history'] == 'none'
+			if $settings['backups']['enabled'] == false
 				puts 'Backups are currently disabled.'
 				return
 			end
 			case type
 			when 'starbound'
-				root = config['starbound_directory']
+				root = $settings['system']['starbound']
 				world_files = "#{root}/storage/universe/*.world"
 				latest_files_directory = File.expand_path('../../../backup', __FILE__)
-				backup_directory = config['backup_directory']
+				backup_directory = $settings['backups']['storage']
 				backup_name = "#{Time.now.strftime("%m-%d-%Y-%H-%M-%S")}-starbound_backup.tar.bz2"
 				changed_files = Array.new
 				Rsync.run(world_files, latest_files_directory, ['-a']) do |result|
@@ -64,9 +62,9 @@ module SBCP
 			when 'full'
 				# This should take a complete backup of Starbound and SBCP.
 				# Currently only supports Starbound.
-				root = config['starbound_directory']
+				root = $settings['system']['starbound']
 				giraffe_directory = "#{root}/storage"
-				backup_directory = config['backup_directory']
+				backup_directory = $settings['backups']['storage']
 				backup_name = "#{Time.now.strftime("%m-%d-%Y-%H-%M-%S")}-full_backup.tar.bz2"
 				FileUtils.cd('/tmp') do
 					system("tar cjpf #{backup_name} #{giraffe_directory} > /dev/null 2>&1")

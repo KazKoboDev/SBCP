@@ -20,15 +20,13 @@ require 'sinatra/flash'
 require 'securerandom'
 require 'fileutils'
 require 'logger'
-require 'yaml'
-
+require 'json'
 require_relative 'daemon'
 
 module SBCP
 	class Panel < Sinatra::Base
 		register Sinatra::Contrib
 		register Sinatra::Flash
-		config = YAML.load_file(File.expand_path('../../config.yml', __FILE__))
 		configure do
 			set :environment, :development
 			set :server, 'thin'

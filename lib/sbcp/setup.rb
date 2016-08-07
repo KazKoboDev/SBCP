@@ -14,180 +14,231 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-require 'yaml'
+require 'json'
 require 'fileutils'
 require 'highline'
 
+require_relative 'config'
+
 module SBCP
 	class Setup
+
 		def initialize
 			@cli = HighLine.new
+			@settings = Hash.new
+			@settings['restarts'] = Hash.new
+			@settings['backups'] = Hash.new
+			@settings['logging'] = Hash.new
+			@settings['system'] = Hash.new
 		end
 
 		def run
-			config_file = File.expand_path('../../../config.yml', __FILE__)
-			config = YAML.load_file(config_file)
-			response = @cli.agree('Are you sure you want to run the first-time setup? (y/n)')
-			if response # If response is true, continue
-				# First, we must attempt to locate where Starbound is installed.
-				# This performs a recursive search on the OS for a folder named 'giraffe_storage'
-				@cli.newline
-				@cli.say('SBCP is starting up...')
-				@cli.say('SBCP is attempting to automatically locate Starbound...')
-				result = Dir.glob('/**/*/Starbound/storage')
-				if result.empty?
-					@cli.say('Unable to locate the Starbound installation directory.')
-					a = ''
-					until Dir.exist?(a) && Dir.exist?(a + '/storage') && File.writable?(a)
-						a = @cli.ask("Please locate the directory manually and enter it below.\n> ")
-						if not Dir.exist?(a) && Dir.exist?(a + '/storage')
-							@cli.say('Error - This dirctory does not exist or is not a Starbound installation. Try again.')
-						elsif not File.writable?(a)
-							@cli.say('Error - This dirctory cannot be written to. Check permissions and try again.')
-						end
-					end
-					config['starbound_directory'] = a
-				else
-					if result.count > 1
-						@cli.say('SBCP encountered multiple possible directories.')
-						answer = @cli.choose do |menu|
-							menu.prompt = "Please select a directory\n> "
-							result.each do |dir|
-								dir = dir.split("/")[0..3].join("/") 
-								menu.choice(dir) { abort('Error - This directory cannot be written to. Check permissions and try again.') if not File.writable?(dir); config['starbound_directory'] = dir }
-							end
-						end
-						@cli.say("Starbound installation directory set to \"#{config['starbound_directory']}\"")
-					else
-						r = result.first.split("/storage").first
-						@cli.say('SBCP successfully located the Starbound installation directory at:')
-						@cli.say("\"#{r}\"")
-						abort('Error - This directory cannot be written to. Check permissions and try again.') if not File.writable?(r)
-						config['starbound_directory'] = r
-					end
-				end
-				root = config['starbound_directory']
-
-				@cli.newline
-				@cli.say('Welcome to SBCP.')
-				@cli.say('You can change any options later by running the config command. (config)')
-				if @cli.agree("Would you like to skip setup and just use SBCP's default settings? (See README) (y/n)")
-					# So we're running with the defaults. Let's get 'em setup!
-					FileUtils.mkdir "#{root}/sbcp" if not Dir.exist?("#{root}/sbcp")
-					FileUtils.mkdir "#{root}/sbcp/backups" if not Dir.exist?("#{root}/sbcp/backups")
-					FileUtils.mkdir "#{root}/sbcp/logs" if not Dir.exist?("#{root}/sbcp/logs")
-					config['backup_directory'] = "#{root}/sbcp/backups"
-					config['backup_history'] = 90
-					config['backup_schedule'] = "hourly"
-					config['log_directory'] = "#{root}/sbcp/logs"
-					config['log_history'] = 90
-					config['log_style'] = "daily"
-					config['duplicate_names'] = false
-					config['duplicate_kick_msg'] = "Another player is currently online with your character's name."
-					config['restart_schedule'] = 4
-				else
-					# Backup Settings
-					@cli.newline
-					@cli.say('--- Automatic Backups ---')
-					if @cli.agree('Would you like to enable automatic backups?')
-						@cli.newline
-						@cli.say('--- Backup Directory Location ---')
-						answer = ''
-						until Dir.exist?(answer) && File.writable?(answer) || answer == 'default'
-							answer = @cli.ask('Where would you like backups to be stored? Type "default" to use default.')
-							if not Dir.exist?(answer)
-								@cli.say('Error - This dirctory does not exist. Try again.') unless answer == 'default'
-							elsif not File.writable?(answer)
-								@cli.say('Error - This dirctory cannot be written to. Check permissions and try again.')
-							end
-						end
-						if answer == 'default'
-							config['backup_directory'] = "#{root}/sbcp/backups"
-							FileUtils.mkdir_p "#{root}/sbcp/backups" if not Dir.exist?("#{root}/sbcp/backups")
-						else
-							config['backup_directory'] = answer
-						end
-
-						@cli.newline
-						@cli.say('--- Backup Schedule ---')
-						answer = @cli.ask('How frequently would you like to take backups (in hours)? Type 0 for on restart.', Integer) { |q| q.in = [0, 1, 2, 3, 4, 6, 8, 12, 24] }
-						answer = 'restart' if answer == 0
-						answer = 'hourly' if answer == 1
-						answer = 'daily' if answer == 24
-						config['backup_schedule'] = answer
-
-						@cli.newline
-						@cli.say('--- Backup History ---')
-						answer = 0
-						until answer > 0
-							answer = @cli.ask('How long would like to keep the backups (in # of days)?', Integer)
-							@cli.say('Value must be greater than zero.') if not answer > 0
-						end
-						config['backup_history'] = answer
-					else
-						config['backup_history'] = 'none'
-					end
-					File.write(config_file, config.to_yaml) # Periodic save
-
-					# Log Settings
-					@cli.newline
-					@cli.say('--- Log Directory Location ---')
-					answer = ''
-					until Dir.exist?(answer) && File.writable?(answer) || answer == 'default'
-						answer = @cli.ask('Where would you like log files to be stored? Type "default" to use default.')
-						if not Dir.exist?(answer)
-							@cli.say('Error - This dirctory does not exist. Try again.') unless answer == 'default'
-						elsif not File.writable?(answer)
-							@cli.say('Error - This dirctory cannot be written to. Check permissions and try again.')
-						end
-					end
-					if answer == 'default'
-						config['log_directory'] = "#{root}/sbcp/logs"
-						FileUtils.mkdir_p "#{root}/sbcp/logs" if not Dir.exist?("#{root}/sbcp/logs")
-					else
-						config['log_directory'] = answer
-					end
-
-					@cli.newline
-					@cli.say('--- Log History ---')
-					answer = 0
-					until answer > 0
-						answer = @cli.ask('How long would you like log files to be kept (in days)?', Integer)
-						@cli.say('Value must be greater than zero.') if not answer > 0
-					end
-					config['log_history'] = answer
-
-					@cli.newline
-					@cli.say('--- Log Style ---')
-					@cli.say('There are two types of log styles available.')
-					@cli.say('Daily: One log file per day. Bigger files, but less of them.')
-					@cli.say('Restart: One log file per restart. Smaller files, but more of them.')
-					answer = @cli.ask("What kind of log style do you prefer?\n> ") { |q| q.in = ['daily', 'restart'] }
-					config['log_style'] = answer
-					File.write(config_file, config.to_yaml)
-
-					# Restart Settings
-					@cli.newline
-					@cli.say('--- Restart Schedule ---')
-					answer = @cli.ask('How frequently would you like the Starbound server to restart (in hours)? Type 0 to disable.', Integer) { |q| q.in = [0, 1, 2, 3, 4, 6, 8, 12, 24] }
-					answer = 'none' if response == 0
-					answer = 'hourly' if response == 1
-					answer = 'daily' if response == 24
-					config['restart_schedule'] = answer
-					File.write(config_file, config.to_yaml)
-				end
-
-				# Create the plugins directory and readme
-				FileUtils.mkdir_p "#{root}/sbcp/plugins" if not Dir.exist?("#{root}/sbcp/plugins")
-				File.write("#{root}/sbcp/plugins/README.txt", "You can override SBCP's behavior by writing your own Ruby plugins and placing them here.\nCheck the README on GitHub for more information.")
-
-				# We save everything back to the config file at the end.
-				File.write(config_file, config.to_yaml)
-
-				@cli.newline
-				@cli.say('SBCP has been configured successfully.')
-				@cli.say('Type help for a list of commands.')
+			@cli.say('Hello! Thank you for installing SBCP. It is time to perform first time setup.')
+			@cli.say('Before we begin, SBCP will attempt to determine Starbound\'s install location.')
+			@cli.say('Searching for Starbound install directory...')
+			locate_starbound
+			@cli.say('Press ENTER when you are ready to continue.')
+			gets
+			system('clear')
+			if @cli.agree('Would you prefer to run setup in Advanced mode? [y/n - not reccomended]') { |q| q.confirm = true }
+				# setup_mode = :ADVANCED
+				@cli.say('You\'ve chosen to run in Advanced mode. You can switch modes by restarting the program. (Press CTRL + C to interrupt)')
+				@cli.say('We will prompt you to directly set the configurable parameters for SBCP. Some light input validation is in effect.')
+				@cli.say('Should the configuration ever become corrupt, check SBCP\'s help menu on how to reset it.')
+				@cli.say('Press ENTER when you are ready to continue.')
+				gets
+				system('clear')
+				advanced_setup
+			else
+				# setup_mode = :NORMAL
+				@cli.say('You\'ve chosen NOT to run in Advanced mode.')
+				@cli.say('We will ask you a series of questions to determine how to best configure SBCP to match your needs.')
+				@cli.say('Should the configuration ever become corrupt, check SBCP\'s help menu on how to reset it.')
+				@cli.say('Press ENTER when you are ready to continue.')
+				gets
+				system('clear')
+				simple_setup
 			end
+		end
+
+		def locate_starbound
+			result = Dir.glob('/**/*/Starbound/storage')
+			if result.empty?
+				# Ask the user to manually provide a directory 
+				# Check and make sure it contains the starbound server executable
+				# It's also important that it's writable by the current user
+				@cli.say('Unable to locate the Starbound install directory.')
+				input = ''
+				until File.exist?(input + '/linux/starbound_server') && File.writable?(input)
+					input = @cli.ask("Please locate the directory manually and enter it below.\n> ")
+					if not File.exist?(input + '/linux/starbound_server')
+						@cli.say('This directory does not exist or is not a Starbound installation. Please try again.')
+					elsif not File.writable?(input)
+						@cli.say('This directory cannot be written to. Please check permissions and try again.')
+					end
+				end
+				@settings['system']['starbound'] = input
+			else
+				if result.count > 1
+					@cli.say('SBCP encountered multiple possible directories.')
+					@cli.choose do |menu|
+						menu.prompt = "Please select a directory\n> "
+						result.each do |dir|
+							dir = dir.split("/")[0..3].join("/") 
+							menu.choice(dir) { abort('This directory cannot be written to. Please check permissions and try again.') if not File.writable?(dir); @settings['system']['starbound'] = dir }
+						end
+					end
+					@cli.say("Starbound installation directory set to \"#{@settings['system']['starbound']}\"")
+				else
+					r = result.first.split("/storage").first
+					@cli.say('SBCP successfully located the Starbound installation directory at:')
+					@cli.say("\"#{r}\"")
+					abort('This directory cannot be written to. Please check permissions and try again.') if not File.writable?(r)
+					@settings['system']['starbound'] = r
+				end
+			end
+		end
+
+		def advanced_setup
+			# Restarts
+			@settings['restarts']['enabled'] = true
+			@settings['restarts']['cron'] = true
+			@settings['restarts']['frequency'] = 240
+			# Backups
+			@settings['backups']['enabled'] = true
+			@settings['backups']['cron'] = true
+			@settings['backups']['frequency'] = 60
+			@settings['backups']['lifetime'] = 720
+			@settings['backups']['storage'] = @settings['system']['starbound'] + '/backups'
+			# Logging
+			@settings['logging']['enabled'] = true
+			@settings['logging']['storage'] = @settings['system']['starbound'] + '/logs'
+			@settings['logging']['lifetime'] = 2160
+			@settings['logging']['mode'] = 1
+			# System
+			@settings['system']['kick_message'] = "Another player is currently online with that character name."
+			@settings['system']['duplicate_names'] = false
+			save_settings
+			Config.new.run # lib/config.rb
+		end
+
+		def simple_setup
+			# SETUP: RESTARTS
+			if @cli.agree('Would you like the server to periodically restart on it\'s own?') { |q| q.confirm = true }
+				@settings['restarts']['enabled'] = true
+				@settings['restarts']['cron'] = true
+				system('clear')
+				@cli.choose do |menu| 
+					menu.confirm = true
+					menu.nil_on_handled = true
+					menu.prompt = 'How frequently would you like the server to restart?'
+					# Selections are in hours, but values are stored in minutes (ex: value * 60)
+					menu.choice('Every hour')			{ @settings['restarts']['frequency'] = 60	}
+					menu.choice('Every two hours')		{ @settings['restarts']['frequency'] = 120	}
+					menu.choice('Every four hours')		{ @settings['restarts']['frequency'] = 240	} # default
+					menu.choice('Every six hours')		{ @settings['restarts']['frequency'] = 360	}
+					menu.choice('Every eight hours')	{ @settings['restarts']['frequency'] = 480	}
+					menu.choice('Every twelve hours')	{ @settings['restarts']['frequency'] = 720	}
+					menu.choice('Once per day')			{ @settings['restarts']['frequency'] = 1440	}
+				end
+			else
+				@settings['restarts']['enabled'] = false
+				@settings['restarts']['cron'] = true
+				@settings['restarts']['frequency'] = 240
+			end
+			system('clear')
+			# SETUP: BACKUPS
+			if @cli.agree('Would you like periodic server backups?') { |q| q.confirm = true }
+				@settings['backups']['enabled'] = true
+				@settings['backups']['cron'] = true
+				system('clear')
+				@cli.choose do |menu| 
+					menu.confirm = true
+					menu.nil_on_handled = true
+					menu.prompt = 'How frequently would you like server backups to be taken?'
+					menu.choice('Every hour')			{ @settings['backups']['frequency'] = 60	} # default
+					menu.choice('Every two hours')		{ @settings['backups']['frequency'] = 120	}
+					menu.choice('Every four hours')		{ @settings['backups']['frequency'] = 240	}
+					menu.choice('Every six hours')		{ @settings['backups']['frequency'] = 360	}
+					menu.choice('Every eight hours')	{ @settings['backups']['frequency'] = 480	}
+					menu.choice('Every twelve hours')	{ @settings['backups']['frequency'] = 720	}
+					menu.choice('Once per day')			{ @settings['backups']['frequency'] = 1440	}
+					menu.choice('Once per restart')		{ @settings['backups']['frequency'] = 0		}
+				end
+				system('clear')
+				@cli.choose do |menu| 
+					menu.confirm = true
+					menu.nil_on_handled = true
+					menu.prompt = 'How long would you like to keep the backups for?'
+					# Selections are in days, but values are stored in hours (ex: value * 24)
+					menu.choice('7 days')			{ @settings['backups']['lifetime'] = 168	}
+					menu.choice('14 days')			{ @settings['backups']['lifetime'] = 336	}
+					menu.choice('30 days')			{ @settings['backups']['lifetime'] = 720	} # default
+					menu.choice('60 days')			{ @settings['backups']['lifetime'] = 1440	}
+					menu.choice('90 days')			{ @settings['backups']['lifetime'] = 2160	}
+					menu.choice('180 days')			{ @settings['backups']['lifetime'] = 4320	}
+					menu.choice('365 days')			{ @settings['backups']['lifetime'] = 8760	}
+					menu.choice('Indefinitely')		{ @settings['backups']['lifetime'] = 0		}
+				end
+				system('clear')
+				@settings['backups']['storage'] = @settings['system']['starbound'] + '/backups'
+				@cli.say("Starbound backups will be stored in \"#{@settings['system']['starbound']}/backups\"")
+				@cli.say('You can change this using the configuration utility at any time. See help for more information.')
+				@cli.say('Press ENTER when you are ready to continue.')
+				gets
+			else
+				@settings['backups']['enabled'] = false
+				@settings['backups']['cron'] = true
+				@settings['backups']['frequency'] = 60
+				@settings['backups']['lifetime'] = 720
+				@settings['backups']['storage'] = @settings['system']['starbound'] + '/backups'
+			end
+			system('clear')
+			# SETUP: LOGGING
+			if @cli.agree('Would you like to enable logging? [Recommended]') { |q| q.confirm = true }
+				@settings['logging']['enabled'] = true
+				system('clear')
+				@cli.choose do |menu| 
+					menu.confirm = true
+					menu.nil_on_handled = true
+					menu.prompt = 'How long would you like to keep logging data for?'
+					# Selections are in days, but values are stored in hours (ex: value * 24)
+					menu.choice('7 days')			{ @settings['logging']['lifetime'] = 168	}
+					menu.choice('14 days')			{ @settings['logging']['lifetime'] = 336	}
+					menu.choice('30 days')			{ @settings['logging']['lifetime'] = 720	}
+					menu.choice('60 days')			{ @settings['logging']['lifetime'] = 1440	}
+					menu.choice('90 days')			{ @settings['logging']['lifetime'] = 2160	} # default
+					menu.choice('180 days')			{ @settings['logging']['lifetime'] = 4320	}
+					menu.choice('365 days')			{ @settings['logging']['lifetime'] = 8760	}
+					menu.choice('Indefinitely')		{ @settings['logging']['lifetime'] = 0		}
+				end
+				system('clear')
+				@settings['logging']['storage'] = @settings['system']['starbound'] + '/logs'
+				@cli.say("Starbound logs will be stored in \"#{@settings['system']['starbound']}/logs\"")
+				@cli.say('You can change this using the configuration editor utility at any time. See help for more information.')
+				@cli.say('Press ENTER when you are ready to continue.')
+				gets
+				# Mode 1 = daily, Mode 2 = restart
+				# Default to mode 1
+				@settings['logging']['mode'] = 1
+			else
+				@settings['logging']['enabled'] = false
+				@settings['logging']['storage'] = @settings['system']['starbound'] + '/logs'
+				@settings['logging']['lifetime'] = 2160
+				@settings['logging']['mode'] = 1
+			end
+			# SETUP: SYSTEM
+			@settings['system']['kick_message'] = "Another player is currently online with that character name."
+			@settings['system']['duplicate_names'] = false
+			save_settings
+		end
+
+		def save_settings
+			old_config = File.expand_path('../../../config.yml', __FILE__)
+			File.delete(old_config) if File.exist?(old_config)
+			config = File.open(File.expand_path('../../../config.json', __FILE__), 'w')
+			config.write(JSON.pretty_generate(@settings))
+			config.close
 		end
 	end
 end
