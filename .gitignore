@@ -3,7 +3,7 @@
 /.idea/
 /Gemfile.lock
 /_yardoc/
-/backup/*world
+/storage/worlds/*world
 /coverage/
 /doc/
 /pkg/
