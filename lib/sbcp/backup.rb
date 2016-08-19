@@ -17,7 +17,6 @@
 require 'securerandom'
 require 'fileutils'
 require 'rsync'
-require 'yaml'
 module SBCP
 	class Backup
 
@@ -29,51 +28,50 @@ module SBCP
 		# Defaults to Starbound.
 
 		def self.create_backup(type='starbound')
-			config = YAML.load_file(File.expand_path('../../../config.yml', __FILE__))
-			if config['backup_history'] == 'none'
-				puts 'Backups are currently disabled.'
-				return
-			end
-			case type
-			when 'starbound'
-				root = config['starbound_directory']
-				world_files = "#{root}/giraffe_storage/universe/*.world"
-				latest_files_directory = File.expand_path('../../../backup', __FILE__)
-				backup_directory = config['backup_directory']
-				backup_name = "#{Time.now.strftime("%m-%d-%Y-%H-%M-%S")}-starbound_backup.tar.bz2"
-				changed_files = Array.new
-				Rsync.run(world_files, latest_files_directory, ['-a']) do |result|
-					if result.success?
-						unless result.changes.length == 0
-							result.changes.each do |change|
-								changed_files.push("#{root}/giraffe_storage/universe/#{change.filename}")
-							end
-							FileUtils.cd('/tmp') do
-								random_name = SecureRandom.urlsafe_base64
-								FileUtils.mkdir random_name
-								FileUtils.cp changed_files, random_name
-								system("tar cjpf #{backup_name} #{random_name}")
-								FileUtils.mv backup_name, backup_directory # Move the created backup to the backup directory
-								FileUtils.rm_r random_name # Remove the folder after we're done with it
+			unless $settings['backups']['enabled'] == false
+				case type
+				when 'starbound'
+					root = $settings['system']['starbound']
+					world_files = "#{root}/storage/universe/*.world"
+					latest_files_directory = File.expand_path('../../../storage/worlds', __FILE__)
+					backup_directory = $settings['backups']['storage']
+					backup_name = "#{Time.now.strftime("%m-%d-%Y-%H-%M-%S")}-starbound_backup.tar.bz2"
+					changed_files = Array.new
+					Rsync.run(world_files, latest_files_directory, ['-a']) do |result|
+						if result.success?
+							unless result.changes.length == 0
+								result.changes.each do |change|
+									changed_files.push("#{root}/storage/universe/#{change.filename}")
+								end
+								FileUtils.cd('/tmp') do
+									random_name = SecureRandom.urlsafe_base64
+									FileUtils.mkdir random_name
+									FileUtils.cp changed_files, random_name
+									system("tar cjpf #{backup_name} #{random_name}")
+									FileUtils.mv backup_name, backup_directory # Move the created backup to the backup directory
+									FileUtils.rm_r random_name # Remove the folder after we're done with it
+								end
 							end
 						end
 					end
+				when 'sbcp'
+					puts "Unimplemented."
+				when 'full'
+					# This should take a complete backup of Starbound and SBCP.
+					# Currently only supports Starbound.
+					root = $settings['system']['starbound']
+					giraffe_directory = "#{root}/storage"
+					backup_directory = $settings['backups']['storage']
+					backup_name = "#{Time.now.strftime("%m-%d-%Y-%H-%M-%S")}-full_backup.tar.bz2"
+					FileUtils.cd('/tmp') do
+						system("tar cjpf #{backup_name} #{giraffe_directory} > /dev/null 2>&1")
+						FileUtils.mv backup_name, backup_directory # Move the created backup to the backup directory
+					end
 				end
-			when 'sbcp'
-				puts "Unimplemented."
-			when 'full'
-				# This should take a complete backup of Starbound and SBCP.
-				# Currently only supports Starbound.
-				root = config['starbound_directory']
-				giraffe_directory = "#{root}/giraffe_storage"
-				backup_directory = config['backup_directory']
-				backup_name = "#{Time.now.strftime("%m-%d-%Y-%H-%M-%S")}-full_backup.tar.bz2"
-				FileUtils.cd('/tmp') do
-					system("tar cjpf #{backup_name} #{giraffe_directory} > /dev/null 2>&1")
-					FileUtils.mv backup_name, backup_directory # Move the created backup to the backup directory
-				end
+				puts "Backup completed successfully."
+			else
+				puts 'Backups are currently disabled.'
 			end
-			puts "Backup completed successfully."
 		end
 	end
 end

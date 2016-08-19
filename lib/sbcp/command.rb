@@ -28,7 +28,7 @@ module SBCP
 		@@PLANET = '^green;'
 
 		def self.beacon(id, args)
-			case args.split(' ', 2)[0].downcase()
+			case args.split(' ', 2)[0]
 			when 'off'
 				character_model = $database.get_character(Starbound::SESSION[:players][id][:account], Starbound::SESSION[:players][id][:name])
 				if not character_model.nil?
@@ -55,7 +55,7 @@ module SBCP
 			if location.nil?
 				$rcon.execute("say /w #{Starbound::SESSION[:players][id][:nick]} #{@@PLAIN}Cannot locate.")
 			else
-				case args.split(' ', 2)[0].downcase()
+				case args.split(' ', 2)[0]
 				when 'new'
 					if $database.claim_world(Starbound::SESSION[:players][id][:account], location[:world_id], location[:is_ship] )
 						$rcon.execute("say /w #{Starbound::SESSION[:players][id][:nick]} #{@@PLAIN}Claim estabished.")
@@ -315,21 +315,22 @@ module SBCP
 
 		def self.help(id, args)
 			help_cmd = args.split(' ', 2)[0]
-			if help_cmd == ''
+			if help_cmd.nil?
 				list = ''
 				first = true
 				CommandHandler.commands.each do |cmd|
 					if first
-						list = cmd.command
+						list = cmd[:command]
+						first = false
 					else
-						list = list + ", #{cmd.command}"
+						list = list + ", #{cmd[:command]}"
 					end
 				end
 				$rcon.execute("say /w #{Starbound::SESSION[:players][id][:nick]} #{@@PLAIN}Server commands: #{list}.")
 			else
 				CommandHandler.commands.each do |cmd|
-					if cmd.command == help_cmd
-						$rcon.execute("say /w #{Starbound::SESSION[:players][id][:nick]} #{@@EMPHASIS}/#{cmd.command} #{@@PLAIN}#{cmd.help}")
+					if cmd[:command] == help_cmd
+						$rcon.execute("say /w #{Starbound::SESSION[:players][id][:nick]} #{@@EMPHASIS}/#{cmd[:command]} #{@@PLAIN}#{cmd[:help]}")
 						return
 					end
 				end

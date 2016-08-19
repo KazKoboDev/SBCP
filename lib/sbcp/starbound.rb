@@ -14,7 +14,6 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-require 'yaml'
 require 'logger'
 require 'rufus-scheduler'
 require 'celluloid/current'
@@ -28,7 +27,6 @@ module SBCP
 		SESSION = {}
 		
 		def initialize
-			@config = YAML.load_file(File.expand_path('../../../config.yml', __FILE__))
 			SESSION[:info] = {
 				:started			=> nil,
 				:uptime				=> nil,
@@ -36,37 +34,39 @@ module SBCP
 				:last_location_poll	=> nil,
 			}
 			SESSION[:players] = {}
-			SESSION[:info][:restart_in] = 'Never' if @config['restart_schedule'] == 'disabled'
-			backup_schedule = @config['backup_schedule']
-			restart_schedule = @config['restart_schedule']
+			SESSION[:info][:restart_in] = 'Never' if $settings['restarts']['enabled'] == false
+			backup_schedule = $settings['backups']['frequency']
+			restart_schedule = $settings['restarts']['frequency']
 			scheduler = Rufus::Scheduler.new
-			unless ['restart', 'none'].include? backup_schedule # Only run backups if they're not set to run at restart or aren't disabled
-				if backup_schedule == 'hourly'
+			unless $settings['restarts']['enabled'] == false or $settings['restarts']['frequency'] == 0 # Only run backups if they're not set to run at restart or aren't disabled
+				if backup_schedule == 60
 					scheduler.cron "0 */1 * * *" do
 						Backup.create_backup
 					end
-				elsif backup_schedule == 'daily'
+				elsif backup_schedule == 1440
 					scheduler.cron "0 0 * * *" do
 						Backup.create_backup
 					end
 				else
+					backup_schedule = backup_schedule / 60
 					scheduler.cron "0 */#{backup_schedule} * * *" do
 						Backup.create_backup
 					end
 				end
 			end
-			unless restart_schedule == 'none' # Only schedule restarts if enabled
-				if restart_schedule == 'hourly'
+			unless $settings['restarts']['enabled'] == false # Only schedule restarts if enabled
+				if restart_schedule == 60
 					scheduler.cron "0 */1 * * *" do
 						pid = `pidof starbound_server`
 						system("kill -15 #{pid.to_i}") if not pid.empty?
 					end
-				elsif restart_schedule == 'daily'
+				elsif restart_schedule == 1440
 					scheduler.cron "0 0 * * *" do
 						pid = `pidof starbound_server`
 						system("kill -15 #{pid.to_i}") if not pid.empty?
 					end
 				else
+					restart_schedule = restart_schedule / 60
 					scheduler.cron "0 */#{restart_schedule} * * *" do
 						pid = `pidof starbound_server`
 						system("kill -15 #{pid.to_i}") if not pid.empty?
@@ -80,7 +80,7 @@ module SBCP
 
 			SESSION[:info][:started] = Time.now
 
-			IO.popen("#{@config['starbound_directory']}/linux64/starbound_server", :chdir=>"#{@config['starbound_directory']}/linux64", :err=>[:child, :out]) do |output|
+			IO.popen("#{$settings['system']['starbound']}/linux/starbound_server", :chdir=>"#{$settings['system']['starbound']}/linux", :err=>[:child, :out]) do |output|
 				while line = output.gets
 					parser.async.parse(line)
 				end

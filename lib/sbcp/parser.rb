@@ -28,16 +28,20 @@ module SBCP
 		include Celluloid
 
 		def initialize
+			## START HACKY FIX
+			require 'fileutils'
+			FileUtils.mkdir_p($settings['backups']['storage']) if not Dir.exist?($settings['backups']['storage'])
+			FileUtils.mkdir_p($settings['logging']['storage']) if not Dir.exist?($settings['logging']['storage'])
+			## END HACKY FIX
 			Starbound::SESSION[:players] = {} if not Starbound::SESSION[:players].empty?
-			@config = YAML.load_file(File.expand_path('../../../config.yml', __FILE__))
-			sb_config_raw = File.read("#{@config['starbound_directory']}/giraffe_storage/starbound.config")
+			sb_config_raw = File.read("#{$settings['system']['starbound']}/storage/starbound_server.config")
 			@sb_config_parsed = JSON.parse(sb_config_raw)
 			@tmp = {}
-			if @config['log_style'] == 'daily' then
-				@log = Logger.new("#{@config['log_directory']}/starbound.log", 'daily', @config['log_history'])
-			elsif @config['log_style'] == 'restart' then
+			if $settings['logging']['mode'] == 1 then
+				@log = Logger.new("#{$settings['logging']['storage']}/starbound.log", 'daily', $settings['logging']['lifetime'])
+			elsif $settings['logging']['mode'] == 2 then
 				stamp = "#{Time.now.strftime("%m-%d-%Y-%H-%M-%S")}-starbound"
-				@log = Logger.new("#{@config['log_directory']}/#{stamp}.log")
+				@log = Logger.new("#{$settings['logging']['storage']}/#{stamp}.log")
 			end
 			@log.formatter = proc { |severity, datetime, progname, msg| date_format = datetime.strftime("%H:%M:%S.%N")[0...-6]; "[#{date_format}] #{msg}" }
 			@log.level = Logger::INFO

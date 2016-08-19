@@ -18,7 +18,8 @@ require 'highline/import'
 require 'celluloid/current'
 require 'time_diff'
 require 'tempfile'
-require 'yaml'
+require 'json'
+require 'hirb'
 require 'pp'
 
 require_relative 'sbcp/backup'
@@ -28,12 +29,13 @@ require_relative 'sbcp/database'
 require_relative 'sbcp/rcon'
 require_relative 'sbcp/setup'
 
+Hirb::View.enable
+
 module SBCP
 	class SBCP
 		def initialize
-			@config = YAML.load_file(File.expand_path('../../config.yml', __FILE__))
+			@commands = ['backup', 'clear', 'config', 'detach', 'exit', 'get', 'kill', 'quit', 'reboot', 'restart', 'say', 'start', 'stop', 'help']
 			$database = Database.new()
-			@commands = ['backup', 'clear', 'config', 'detach', 'exit', 'get', 'kill', 'quit', 'reboot', 'restart', 'say', 'setup', 'start', 'stop', 'help']
 			@commands_scheme = [
 				"<%= color('backup', :command) %>",
 				"<%= color('clear', :command) %>",
@@ -46,7 +48,6 @@ module SBCP
 				"<%= color('reboot', :command) %>",
 				"<%= color('restart', :command) %>",
 				"<%= color('say', :command) %>",
-				"<%= color('setup', :command) %>",
 				"<%= color('start', :command) %>",
 				"<%= color('stop', :command) %>",
 				"<%= color('help', :command) %>"
@@ -62,9 +63,17 @@ module SBCP
 				cs[:help] =			[ :magenta, :on_black ]
 			end
 			HighLine.color_scheme = scheme
+			if File.exist?(File.expand_path('../../config.json', __FILE__))
+				$settings = JSON.parse(File.read(File.expand_path('../../config.json', __FILE__)))
+			else
+				Setup.new.run # lib/setup.rb
+				$settings = JSON.parse(File.read(File.expand_path('../../config.json', __FILE__)))
+			end
+		rescue Psych::SyntaxError
+			abort("SBCP was unable to load the configuration file. It may be corrupt.")
 		end
 
-		def repl
+		def intro
 			system('clear')
 			say("<%= color(' .d8888b.  888888b.    .d8888b.  8888888b.', :headline) %>")
 			say("<%= color('d88P  Y88b 888  \"88b  d88P  Y88b 888   Y88b', :headline) %>")
@@ -83,6 +92,10 @@ module SBCP
 			say("<%= color(' | (__| |__ | |   | |\\/| | (_) | |) | _|', :subheader) %>")
 			say("<%= color('  \\___|____|___|  |_|  |_|\\___/|___/|___|', :subheader) %>")
 			say("\n")
+		end
+
+		def repl
+			intro
 			loop do
 				input = ask('> ')
 				case input
@@ -91,14 +104,15 @@ module SBCP
 				when 'clear'
 					system('clear')
 				when 'config'
-					Config.new.config_menu(:main)
+					Config.new.run # lib/config.rb
+					intro
 				when 'detach'
 					system('screen -d')
 				when 'exit', 'quit'
 					say("<%= color('!!! This action could result in data loss !!!', :warning) %>")
 					say("<%= color('!!! Starbound shall be stopped if running !!!', :warning) %>")
 					if agree("Are you sure? ", true)
-						stop('SIGKILL') unless `pidof starbound_server`.empty?
+						stop('SIGKILL') unless `pidof starbound_server`.empty? # prevent abort request warning if SB not running
 						exit
 					end
 				when /^(get|get\s?(\S+))$/
@@ -119,10 +133,8 @@ module SBCP
 					end
 				when /^(say|say\s?(.+))$/
 					sb_say($2)
-				when 'setup'
-					Setup.new.run
 				when 'start'
-					if not @config['starbound_directory'].nil?
+					if not $settings['system']['starbound'].nil?
 						if `pidof starbound_server`.empty?
 							if $daemon.nil?
 								start
@@ -133,7 +145,7 @@ module SBCP
 							say("<%= color('Duplicate prevented.', :warning) %> The server is already running.")
 						end
 					else
-						say("<%= color('Error', :warning) %> Please run setup then restart SBCP.")
+						say("<%= color('Error', :warning) %> Starbound directory path is invalid. Check the configuration setup. (type 'config')")
 					end
 				when 'stop'
 					if agree("Are you sure? ", true)
@@ -178,7 +190,7 @@ module SBCP
 					unless Starbound::SESSION.nil? || Starbound::SESSION.empty?
 						Starbound::SESSION[:info][:uptime] = Time.diff(Starbound::SESSION[:info][:started], Time.now, '%H %N %S')[:diff]
 						unless Starbound::SESSION[:info][:restart_in] == 'Never'
-							Starbound::SESSION[:info][:restart_in] = "#{(((@config['restart_schedule']*60*60) - (Time.now - Starbound::SESSION[:info][:started]))/60).to_i} minutes" # Inaccurate for first start, fairly acurrate thereafter
+							Starbound::SESSION[:info][:restart_in] = "#{((($settings['restarts']['frequency']*60*60) - (Time.now - Starbound::SESSION[:info][:started]))/60).to_i} minutes" # Inaccurate for first start, fairly acurrate thereafter
 						end
 						Starbound::SESSION[:info].each_pair do |key, value|
 							say("<%= color('#{key.to_s.capitalize}:', :info) %> #{value}")
@@ -188,7 +200,7 @@ module SBCP
 					end
 				when 'players'
 					unless Starbound::SESSION.nil? || Starbound::SESSION.empty?
-						pp(Starbound::SESSION[:players])
+						Hirb::View.capture_and_render { pp(Starbound::SESSION[:players]) }
 					else
 						say("<%= color('Error!', :failure) %> Session data is missing or empty.")
 					end

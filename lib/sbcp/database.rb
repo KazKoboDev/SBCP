@@ -20,7 +20,6 @@ require 'yaml'
 module SBCP
 	class Database
 		def initialize
-			@config = YAML.load_file(File.expand_path('../../../config.yml', __FILE__))
 			#TODO Add configurable database path
  			DataMapper.setup(:default, "sqlite:SBCP.db")
 

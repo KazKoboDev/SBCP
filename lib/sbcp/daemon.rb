@@ -14,7 +14,6 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-require 'yaml'
 require 'tempfile'
 require 'celluloid/current'
 require_relative 'starbound'
@@ -25,26 +24,22 @@ module SBCP
 	class Daemon
 		include Celluloid
 
-		def initialize
-			@config = YAML.load_file(File.expand_path('../../../config.yml', __FILE__))
-		end
-
 		def start
 			# Quick check for invalid config values.
-			raise('Please run setup first.') if @config['starbound_directory'].nil?
-			raise('Error - Invalid starbound directory') if not Dir.exist?(@config['starbound_directory']) && Dir.exist?(@config['starbound_directory'] + '/giraffe_storage')
-			raise('Error - Invalid backup directory') if not Dir.exist?(@config['backup_directory'])
-			raise('Error - Invalid backup schedule') if not ['hourly', 2, 3, 4, 6, 8, 12, 'daily', 'restart'].include? @config['backup_schedule']
-			raise('Error - Invalid backup history') if not  @config['backup_history'] == 'none' || @config['backup_history'] >= 1
-			raise('Error - Invalid log directory') if not Dir.exist?(@config['log_directory'])
-			raise('Error - Invalid log history') if not @config['log_history'].is_a?(Integer) && @config['log_history'] >= 1
-			raise('Error - Invalid log style') if not ['daily', 'restart'].include? @config['log_style']
-			raise('Error - Invalid restart schedule') if not ['none', 'hourly', 2, 3, 4, 6, 8, 12, 'daily'].include? @config['restart_schedule']
+			#raise('Please run setup first.') if $settings['starbound_directory'].nil?
+			#raise('Error - Invalid starbound directory') if not Dir.exist?($settings['starbound_directory']) && Dir.exist?($settings['starbound_directory'] + '/storage')
+			#raise('Error - Invalid backup directory') if not Dir.exist?($settings['backup_directory'])
+			#raise('Error - Invalid backup schedule') if not ['hourly', 2, 3, 4, 6, 8, 12, 'daily', 'restart'].include? $settings['backup_schedule']
+			#raise('Error - Invalid backup history') if not  $settings['backup_history'] == 'none' || $settings['backup_history'] >= 1
+			#raise('Error - Invalid log directory') if not Dir.exist?($settings['log_directory'])
+			#raise('Error - Invalid log history') if not $settings['log_history'].is_a?(Integer) && $settings['log_history'] >= 1
+			#raise('Error - Invalid log style') if not ['daily', 'restart'].include? $settings['log_style']
+			#raise('Error - Invalid restart schedule') if not ['none', 'hourly', 2, 3, 4, 6, 8, 12, 'daily'].include? $settings['restart_schedule']
 
 			# Require any present plugins
-			plugins_directory = "#{@config['starbound_directory']}/sbcp/plugins"
-			$LOAD_PATH.unshift(plugins_directory)
-			Dir[File.join(plugins_directory, '*.rb')].each {|file| require File.basename(file) }
+			#plugins_directory = "#{$settings['system']['starbound']}/sbcp/plugins"
+			#$LOAD_PATH.unshift(plugins_directory)
+			#Dir[File.join(plugins_directory, '*.rb')].each {|file| require File.basename(file) }
 
 			# We create an infinite loop so we can easily restart the server.
 			loop do
@@ -59,8 +54,8 @@ module SBCP
 				# Once the server has finished running, we'll want to age our logfiles.
 				# We'll also take backups here if they've been set to behave that way.
 				# There's probably a better way than sending config values as arguements, but...
-				Logs.age(@config['log_directory'], @config['log_history']) if @config['log_style'] == 'restart'
-				Backup.create_backup if @config['backup_schedule'] == 'restart'
+				Logs.age($settings['logging']['storage'], $settings['logging']['storage']) if $settings['logging']['mode'] == 2 # Restart mode
+				Backup.create_backup if $settings['backups']['frequency'] == 0 # Once per restart
 
 				# Now we must determine if the server was closed intentionally.
 				# If the server was shut down on purpose, we don't want to automatically restart it.

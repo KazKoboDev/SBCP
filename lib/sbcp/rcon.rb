@@ -15,8 +15,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 require 'steam-condenser'
-require 'json'
-require 'yaml'
 
 #Extend the Source Server to patch the rcon_exec method
 #There appears to be an issue with SB's handling of multipacket responses
@@ -78,7 +76,11 @@ module SBCP
 				say("<%= color('RCon Error: #{$!}', :warning) %>")
 				say("<%= color('Attempting to reconnect.', :warning) %>")
 				if connect()
-					reply = @rcon.rcon_exec(command)
+					begin
+						reply = @rcon.rcon_exec(command)
+					rescue
+						say("<%= color('Failed to execute RCon request.', :warning) %>")
+					end
 				end
 			end
 			return reply

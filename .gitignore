@@ -3,9 +3,11 @@
 /.idea/
 /Gemfile.lock
 /_yardoc/
-/backup/*world
+/storage/worlds/*world
 /coverage/
 /doc/
 /pkg/
 /spec/reports/
 /tmp/
+/config.yml
+/config.json
