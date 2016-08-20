@@ -23,7 +23,7 @@ module SBCP
 			property :id, Serial, :key => true
 			property :planet, String, :default => ''
 			property :name, String, :default => ''
-			property :description, String, :default => ''
+			property :description, String, :default => '', :length => 200
 			property :is_ship, Boolean, :default => false
 			property :created, DateTime
 			property :last_access, DateTime

@@ -22,7 +22,7 @@ module SBCP
 			include DataMapper::Resource
 			property :id, Serial, :key => true
 			property :name, String
-			property :description, String, :default => ''
+			property :description, String, :default => '', :length => 200
 			property :incognito, Boolean, :default => false
 			property :created, DateTime
 			property :last_access, DateTime

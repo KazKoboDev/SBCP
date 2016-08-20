@@ -97,6 +97,16 @@ module SBCP
  			return nil
  		end
 
+  		def promote_account(username, level)
+ 			account_model = Models::Account.first(:username => username)
+ 			if not account_model.nil?
+				account_model.permission_level = level
+				account_model.save()
+				return true
+ 			end
+ 			return false
+ 		end
+
   		def release_world(username, planet)
  			success = false
  			account_model = Models::Account.first(:username => username)
@@ -104,9 +114,7 @@ module SBCP
 				world_model = Models::World.first(:planet => planet)
 				if not world_model.nil?
 					if world_model.account == account_model or account_model.permission_level == Models::Account::TECHMOD
-						world_model.account = nil
-						world_model.last_access = DateTime.now()	
-						world_model.save()
+						world_model.destroy()
 						success = true
 					end
 				end

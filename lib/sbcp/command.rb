@@ -25,7 +25,7 @@ module SBCP
 		@@EMPHASIS = '^#ddd37b;'
 		@@WARNING = '^red;'
 		@@PLAIN = '^#aaaaaa;'
-		@@PLANET = '^green;'
+		@@PLANET = '^#ffa3bf;'
 
 		def self.beacon(id, args)
 			case args.split(' ', 2)[0]
@@ -46,14 +46,14 @@ module SBCP
 					$rcon.execute("say /w #{Starbound::SESSION[:players][id][:nick]} #{@@PLAIN}Beacon enabled.")
 				end
 			else
-				$rcon.execute("say /w #{Starbound::SESSION[:players][id][:nick]} #{@@PLAIN}Bad arguments.")
+				$rcon.execute("say /w #{Starbound::SESSION[:players][id][:nick]} #{@@WARNING}Bad arguments.")
 			end				
 		end
 
 		def self.claim(id, args)
 			location = get_location(id)
 			if location.nil?
-				$rcon.execute("say /w #{Starbound::SESSION[:players][id][:nick]} #{@@PLAIN}Cannot locate.")
+				$rcon.execute("say /w #{Starbound::SESSION[:players][id][:nick]} #{@@WARNING}Cannot locate.")
 			else
 				case args.split(' ', 2)[0]
 				when 'new'
@@ -74,8 +74,11 @@ module SBCP
 					if not world_model.nil? and not account_model.nil? and world_model.account == account_model
 						world_model.name = args.split(' ', 2)[1]
 						world_model.last_access = DateTime.now()
-						world_model.save()
-						$rcon.execute("say /w #{Starbound::SESSION[:players][id][:nick]} #{@@PLAIN}Claim name set.")
+						if world_model.save()
+							$rcon.execute("say /w #{Starbound::SESSION[:players][id][:nick]} #{@@PLAIN}Claim name set.")
+						else
+							$rcon.execute("say /w #{Starbound::SESSION[:players][id][:nick]} #{@@WARNING}Claim name not set. (Too Long?)")
+						end					
 					else
 						$rcon.execute("say /w #{Starbound::SESSION[:players][id][:nick]} #{@@WARNING}Claim does not belong to you.")
 					end	
@@ -85,8 +88,11 @@ module SBCP
 					if not world_model.nil? and not account_model.nil? and world_model.account == account_model
 						world_model.description = args.split(' ', 2)[1]
 						world_model.last_access = DateTime.now()
-						world_model.save()
-						$rcon.execute("say /w #{Starbound::SESSION[:players][id][:nick]} #{@@PLAIN}Claim description set.")
+						if world_model.save()
+							$rcon.execute("say /w #{Starbound::SESSION[:players][id][:nick]} #{@@PLAIN}Claim description set.")
+						else
+							$rcon.execute("say /w #{Starbound::SESSION[:players][id][:nick]} #{@@WARNING}Claim description not set. (Too Long?)")
+						end	
 					else
 						$rcon.execute("say /w #{Starbound::SESSION[:players][id][:nick]} #{@@WARNING}Claim does not belong to you.")
 					end
@@ -105,6 +111,8 @@ module SBCP
 				else
 					$rcon.execute("say /w #{Starbound::SESSION[:players][id][:nick]} #{@@EMPHASIS}#{args}: #{@@PLAIN}No description set.")
 				end
+			else
+				$rcon.execute("say /w #{Starbound::SESSION[:players][id][:nick]} #{@@WARNING}Target not found.")
 			end
 		end
 
@@ -266,34 +274,36 @@ module SBCP
 			poll_locations()
 			success = false
 			spec = args.split(' ', 2)[0]
-			roll = spec.split('d')
-			if roll.length() == 2
-				count = roll[0].to_i()
-				if roll[1] == 'f'
-					low = -1
-					high = 1
-				else
-					low = 1
-					high = roll[1].to_i()
-				end
-				if count > 0 and count <= 10 and high > 0 and high <= 100
-					out_str = ""
-					sum = 0
-					count.times do |i|
-						result = rand(high - low + 1) + low
-						sum = sum + result
-						if i == 0
-							out_str = result.to_s()
-						else
-							out_str = out_str + ", #{result}"
-						end
-					end
-					if count > 1
-						send_to_location(Starbound::SESSION[:players][id][:location], "#{@@EMPHASIS}#{Starbound::SESSION[:players][id][:name]} #{@@PLAIN}rolled a #{@@EMPHASIS}#{sum} #{@@PLAIN}(#{spec}: #{out_str}).")
+			if not spec.nil?
+				roll = spec.split('d')
+				if roll.length() == 2
+					count = roll[0].to_i()
+					if roll[1] == 'f'
+						low = -1
+						high = 1
 					else
-						send_to_location(Starbound::SESSION[:players][id][:location], "#{@@EMPHASIS}#{Starbound::SESSION[:players][id][:name]} #{@@PLAIN}rolled a #{@@EMPHASIS}#{sum} #{@@PLAIN}(#{spec}).")
+						low = 1
+						high = roll[1].to_i()
 					end
-					success = true
+					if count > 0 and count <= 10 and high > 0 and high <= 100
+						out_str = ""
+						sum = 0
+						count.times do |i|
+							result = rand(high - low + 1) + low
+							sum = sum + result
+							if i == 0
+								out_str = result.to_s()
+							else
+								out_str = out_str + ", #{result}"
+							end
+						end
+						if count > 1
+							send_to_location(Starbound::SESSION[:players][id][:location], "#{@@EMPHASIS}#{Starbound::SESSION[:players][id][:name]} #{@@PLAIN}rolled a #{@@EMPHASIS}#{sum} #{@@PLAIN}(#{spec}: #{out_str}).")
+						else
+							send_to_location(Starbound::SESSION[:players][id][:location], "#{@@EMPHASIS}#{Starbound::SESSION[:players][id][:name]} #{@@PLAIN}rolled a #{@@EMPHASIS}#{sum} #{@@PLAIN}(#{spec}).")
+						end
+						success = true
+					end
 				end
 			end
 			if not success
@@ -306,8 +316,11 @@ module SBCP
 			if not character_model.nil?
 				character_model.description = args
 				character_model.last_access = DateTime.now()
-				character_model.save()
-				$rcon.execute("say /w #{Starbound::SESSION[:players][id][:nick]} #{@@PLAIN}Description set.")
+				if character_model.save()
+					$rcon.execute("say /w #{Starbound::SESSION[:players][id][:nick]} #{@@PLAIN}Description set.")
+				else
+					$rcon.execute("say /w #{Starbound::SESSION[:players][id][:nick]} #{@@PLAIN}Description not set. (Too Long?)")
+				end
 			else
 				$rcon.execute("say /w #{Starbound::SESSION[:players][id][:nick]} #{@@WARNING}Failed to set description.")
 			end
@@ -323,14 +336,14 @@ module SBCP
 						list = cmd[:command]
 						first = false
 					else
-						list = list + ", #{cmd[:command]}"
+						list = list + ", #{@@PLAIN}#{cmd[:command]}"
 					end
 				end
 				$rcon.execute("say /w #{Starbound::SESSION[:players][id][:nick]} #{@@PLAIN}Server commands: #{list}.")
 			else
 				CommandHandler.commands.each do |cmd|
 					if cmd[:command] == help_cmd
-						$rcon.execute("say /w #{Starbound::SESSION[:players][id][:nick]} #{@@EMPHASIS}/#{cmd[:command]} #{@@PLAIN}#{cmd[:help]}")
+						$rcon.execute("say /w #{Starbound::SESSION[:players][id][:nick]} #{@@EMPHASIS}/#{cmd[:command]} #{@@PLAIN}#{cmd[help]}")
 						return
 					end
 				end
