@@ -105,7 +105,7 @@ SBCP still has some work left to be done. I have some additional features planne
 
 ## Known Issues
 
-* The time until next restart listed by the "get info" command will be incorrect until after the first restart (actual restart times are not affected)
+Please see the [issues](https://github.com/Kazyyk/SBCP/issues) page.
 
 ## Contributing
 

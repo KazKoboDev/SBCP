@@ -16,7 +16,11 @@
 
 require 'celluloid/current'
 require 'tempfile'
+require 'time'
+require 'yaml'
 
+require_relative 'command'
+require_relative 'plugin'
 require_relative 'rcon'
 
 module SBCP
@@ -42,6 +46,7 @@ module SBCP
 			@log.formatter = proc { |severity, datetime, progname, msg| date_format = datetime.strftime("%H:%M:%S.%N")[0...-6]; "[#{date_format}] #{msg}" }
 			@log.level = Logger::INFO
 			@log.info("---------- SBCP is starting a new Starbound instance ----------\n")
+			@command_handler = CommandHandler.new()
 		end
 
 		def log(string)
@@ -49,42 +54,49 @@ module SBCP
 		end
 
 		def parse(line)
-			if line.include? "Chat:"
-				parse_chat(line)
-			else
-				case line
-				when /Starting UniverseServer with UUID:/
-					if @sb_config_parsed["runRconServer"] == true
-						$rcon = RCON.new(@sb_config_parsed["rconServerPort"], @sb_config_parsed["rconServerPassword"])
-					else
-						puts "RCON is not enabled. Please check your starbound.config file."
-						puts "Some of SBCP's features may not work correctly without RCON."
-					end
-				when /Logged in account '(.+)' as player '(.+)' from address (.+)/
-					id = Starbound::SESSION[:players].count + 1
-					@tmp[id] = {
-						:account => $1,
-						:name => $2,
-						:ip => $3,
-						:nick => nil
-					}
-				when /Client '(.+)' <(\d+)> \((.+)\) connected/
-					if get_id_from_name($1)
-						unless $rcon.nil?
-							$rcon.execute("kick $#{$2} \"#{$settings['system']['kick_message']}\"")
-							id = get_tempid_from_name($1)
-							@tmp.delete(id)
+			if false == Plugin.hook("parse", line)
+				if line.include? "Chat:"
+					parse_chat(line)
+				else
+					case line
+					when /Starting UniverseServer with UUID:/
+						if @sb_config_parsed["runRconServer"] == true
+							$rcon = RCON.new(@sb_config_parsed["rconServerPort"], @sb_config_parsed["rconServerPassword"])
 						else
-							log('DUPLICATE NAME DETECTED BUT RCON DISABLED - CANNOT HANDLE')
+							puts "RCON is not enabled. Please check your starbound.config file."
+							puts "Some of SBCP's features may not work correctly without RCON."
 						end
-					elsif id = get_tempid_from_name($1)
-						Starbound::SESSION[:players][$2] = @tmp[id]
-						@tmp.delete(id)
+					when /Logged in account '(.+)' as player '(.+)' from address (.+)/
+						id = Starbound::SESSION[:players].count + 1
+						@tmp[id] = {
+							:account => $1,
+							:name => $2,
+							:ip => $3,
+							:nick => $2,
+							:location => nil
+						}
+					when /Client '(.+)' <(\d+)> \((.+)\) connected/
+						if get_id_from_name($1)
+							unless $rcon.nil?
+								$rcon.execute("kick $#{$2} \"#{@config['duplicate_kick_msg']}\"")
+								id = get_tempid_from_name($1)
+								@tmp.delete(id)
+							else
+								log('DUPLICATE NAME DETECTED BUT RCON DISABLED - CANNOT HANDLE')
+							end
+						elsif id = get_tempid_from_name($1)
+							Starbound::SESSION[:players][$2] = @tmp[id]
+
+							$database.add_character(@tmp[id][:account], @tmp[id][:name])
+							@tmp.delete(id)
+							Plugin.hook("login", $1, $2, $3)
+						end
+					when /Client '(.+)' <(\d+)> \((.+)\) disconnected/
+						Plugin.hook("logout", $1, $2, $3)
+						Starbound::SESSION[:players].delete($2) unless Starbound::SESSION[:players][$2].nil?
 					end
-				when /Client '(.+)' <(\d+)> \((.+)\) disconnected/
-					Starbound::SESSION[:players].delete($2) unless Starbound::SESSION[:players][$2].nil?
+					log(line)
 				end
-				log(line)
 			end
 		end
 
@@ -95,12 +107,24 @@ module SBCP
 		private
 
 			def parse_chat(line)
-				case line
-				when /<(.+)> \/nick (.+)/
-					id = get_id_from_name($1)
-					Starbound::SESSION[:players][id][:nick] = $2
+				if false == Plugin.hook("chat", line)
+					case line
+					when /<(.+)> \/(\S+) *(.*)/
+						character = $1
+						command = $2
+						args = $3
+						if false == Plugin.hook("command", character, command, args)
+							id = get_id_from_name(character)
+							case command
+							when 'nick'
+								Starbound::SESSION[:players][id][:nick] = args.split(' ', 2)[0]
+							else
+								@command_handler.execute(id, command, args)
+							end
+						end
+					end
+					log(line)
 				end
-				log(line)
 			end
 
 			def get_tempid_from_name(name)

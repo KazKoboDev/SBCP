@@ -28,9 +28,10 @@ module SBCP
 		
 		def initialize
 			SESSION[:info] = {
-				:started	=> nil,
-				:uptime		=> nil,
-				:restart_in	=> nil,
+				:started			=> nil,
+				:uptime				=> nil,
+				:restart_in			=> nil,
+				:last_location_poll	=> nil,
 			}
 			SESSION[:players] = {}
 			SESSION[:info][:restart_in] = 'Never' if $settings['restarts']['enabled'] == false

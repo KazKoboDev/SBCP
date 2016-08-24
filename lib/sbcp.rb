@@ -25,6 +25,7 @@ require 'pp'
 require_relative 'sbcp/backup'
 require_relative 'sbcp/config'
 require_relative 'sbcp/daemon'
+require_relative 'sbcp/database'
 require_relative 'sbcp/rcon'
 require_relative 'sbcp/setup'
 
@@ -33,7 +34,8 @@ Hirb::View.enable
 module SBCP
 	class SBCP
 		def initialize
-			@commands = ['backup', 'clear', 'config', 'detach', 'exit', 'get', 'kill', 'quit', 'reboot', 'restart', 'say', 'start', 'stop', 'help']
+			@commands = ['backup', 'clear', 'config', 'detach', 'exit', 'get', 'kill', 'promote','quit', 'reboot', 'restart', 'say', 'start', 'stop', 'help']
+			$database = Database.new()
 			@commands_scheme = [
 				"<%= color('backup', :command) %>",
 				"<%= color('clear', :command) %>",
@@ -42,6 +44,7 @@ module SBCP
 				"<%= color('exit', :command) %>",
 				"<%= color('get', :command) %>",
 				"<%= color('kill', :command) %>",
+				"<%= color('promote', :command) %>",
 				"<%= color('quit', :command) %>",
 				"<%= color('reboot', :command) %>",
 				"<%= color('restart', :command) %>",
@@ -120,6 +123,8 @@ module SBCP
 					if agree("Are you sure? ", true)
 						stop('SIGKILL')
 					end
+				when /^(promote|promote\s?(.+))$/
+					promote($2)
 				when 'reboot'
 					say("<%= color('!!! This action could result in data loss !!!', :warning) %>")
 					if agree("Are you sure? ", true)
@@ -232,6 +237,32 @@ module SBCP
 				file.close
 				file.unlink
 			end
+		end
+
+		def promote(args)
+			username = args.split(' ', 2)[0]
+			level = args.split(' ', 2)[1]
+			level_code = nil
+			case level
+			when 'user'
+				level_code = Models::Account::USER
+			when 'mod'
+				level_code = Models::Account::MOD
+			when 'techmod'
+				level_code = Models::Account::TECHMOD
+			when 'admin'
+				level_code = Models::Account::ADMIN
+			end
+
+			if not level_code.nil?
+				if $database.promote_account(username, level_code)
+					say("<%= color('User promoted.', :success) %>")
+				else
+					say("<%= color('Promotion failed.', :warning) %>")
+				end
+			else
+				say("<%= color('Invalid Level. Try: user, mod, techmod, admin.', :warning) %>")
+			end			
 		end
 
 		def sb_say(string)

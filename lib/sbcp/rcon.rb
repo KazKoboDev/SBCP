@@ -16,24 +16,74 @@
 
 require 'steam-condenser'
 
+#Extend the Source Server to patch the rcon_exec method
+#There appears to be an issue with SB's handling of multipacket responses
+class StarboundRConServer < SourceServer
+	def rcon_exec(command)
+		raise RCONNoAuthError unless @rcon_authenticated
+
+		@rcon_socket.send RCONExecRequest.new(@rcon_request_id, command)
+
+		response_packet = @rcon_socket.reply
+
+		if response_packet.nil? || response_packet.is_a?(RCONAuthResponse)
+			@rcon_authenticated = false
+			raise RCONNoAuthError
+		end
+
+		return response_packet.response
+	end
+end
+
 module SBCP
 	class RCON
 		def initialize(port, pass)
+			SteamSocket.timeout = 1000
+			@port = port
+			@pass = pass
+			connect()
+		end
+
+		def connect
+			tries = 0
 			original_verbosity = $VERBOSE
 			$VERBOSE = nil
-			SteamSocket.timeout = 100
-			@rcon = SourceServer.new("127.0.0.1:#{port}")
-			@rcon.rcon_auth(pass)
+			begin
+				@rcon = StarboundRConServer.new("127.0.0.1:#{@port}")
+				@rcon.rcon_auth(@pass)
+				say("<%= color('RCon Connection Established.', :success) %>")
+				$VERBOSE = original_verbosity
+				return true
+			rescue
+				if tries < 3
+					tries += 1
+					retry
+				else
+					say("<%= color('RCon Connection failed.', :warning) %>")
+				end
+			end
 			$VERBOSE = original_verbosity
+			return false
 		end
 
 		def execute(command)
 			# We swallow the time out exception here because Steam Condenser expects a reply
 			# Starbound doesn't seem to always give a reply, even though the commands work
+			reply = nil
 			begin
-				@rcon.rcon_exec(command)
+				reply = @rcon.rcon_exec(command)
 			rescue Exception
+				say("<%= color('RCon Error: #{$!}', :warning) %>")
+				say("<%= color('Attempting to reconnect.', :warning) %>")
+				if connect()
+					begin
+						reply = @rcon.rcon_exec(command)
+					rescue
+						say("<%= color('Failed to execute RCon request.', :warning) %>")
+					end
+				end
 			end
+			return reply
 		end
 	end
 end
