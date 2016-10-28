@@ -1,1 +1,0 @@
-SBCP uses this directory to create incremental backups.
